@@ -1,4 +1,8 @@
-const socket = io({
+const SOCKET_URL = window.location.hostname.includes("onrender.com")
+    ? "https://beechwood-attendance.onrender.com"
+    : "http://localhost:5001";
+
+const socket = io(SOCKET_URL, {
     auth: {
         token: localStorage.getItem("token")
     },
@@ -9,7 +13,6 @@ socket.on('attendanceUpdated', async (data) => {
     console.log('📢 Real-time update:', data);
 
     try {
-        // 🔥 EMPLOYEE DASHBOARD
         if (typeof loadMarkedAttendance === 'function') {
             await loadMarkedAttendance();
         }
@@ -22,12 +25,10 @@ socket.on('attendanceUpdated', async (data) => {
             updateCalendarColors();
         }
 
-        // 🔥 EMPLOYEE ATTENDANCE PAGE
         if (typeof loadEmployeeAttendance === 'function') {
             await loadEmployeeAttendance();
         }
 
-        // 🔥 ADMIN DASHBOARD
         if (typeof loadDashboardStats === 'function') {
             await loadDashboardStats();
         }

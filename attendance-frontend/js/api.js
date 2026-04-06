@@ -1,6 +1,8 @@
 // js/api.js - API Service for Beechwood Attendance System
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = window.location.hostname.includes("onrender.com")
+    ? "https://beechwood-attendance.onrender.com/api"
+    : "http://localhost:5001/api";
 
 let authToken = localStorage.getItem('token');
 let userRole = localStorage.getItem('userRole');
