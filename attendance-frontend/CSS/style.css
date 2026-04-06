@@ -1,0 +1,755 @@
+/* ============================================
+   Attendance Management System - Beechwood Solutions
+   Global Styles
+============================================ */
+
+:root {
+    --primary-color: #667eea;
+    --secondary-color: #764ba2;
+    --success-color: #10b981;
+    --danger-color: #ef4444;
+    --warning-color: #f59e0b;
+    --info-color: #3b82f6;
+    --dark-color: #1f2937;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f3f4f6;
+    overflow-x: hidden;
+}
+
+/* ============================================
+   Sidebar Styles
+============================================ */
+.sidebar {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    min-height: 100vh;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+    padding: 0;
+}
+
+.sidebar .nav-link {
+    color: rgba(255,255,255,0.8);
+    padding: 12px 20px;
+    margin: 5px 0;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.sidebar .nav-link:hover {
+    background: rgba(255,255,255,0.1);
+    color: white;
+    transform: translateX(5px);
+}
+
+.sidebar .nav-link.active {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border-left: 4px solid white;
+}
+
+.sidebar .nav-link i {
+    width: 25px;
+}
+
+/* ============================================
+   Main Content
+============================================ */
+.main-content {
+    margin-left: 16.666%;
+    padding: 20px;
+}
+
+/* ============================================
+   Cards
+============================================ */
+.gradient-card {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    border: none;
+    border-radius: 15px;
+}
+
+.stats-card {
+    border: none;
+    border-radius: 15px;
+    transition: transform 0.3s ease;
+    cursor: pointer;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.bg-gradient-warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+}
+
+.bg-gradient-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+}
+
+.bg-gradient-info {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    background: white;
+    border-bottom: 2px solid #f3f4f6;
+    font-weight: 600;
+    border-radius: 15px 15px 0 0 !important;
+}
+
+/* ============================================
+   Buttons
+============================================ */
+.btn {
+    border-radius: 10px;
+    padding: 10px 25px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border: none;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102,126,234,0.4);
+}
+
+/* ============================================
+   Tables
+============================================ */
+.table {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.table thead th {
+    background: #f8f9fa;
+    border-bottom: 2px solid #e5e7eb;
+    font-weight: 600;
+}
+
+.table-hover tbody tr:hover {
+    background: #f9fafb;
+    cursor: pointer;
+}
+
+/* ============================================
+   Badges
+============================================ */
+.badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.badge-present {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.badge-absent {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.badge-late {
+    background: #fed7aa;
+    color: #92400e;
+}
+
+.badge-halfday {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.badge-leave {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.badge-holiday {
+    background: #ddd6fe;
+    color: #5b21b6;
+}
+
+/* ============================================
+   Employee Cards
+============================================ */
+.employee-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.employee-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+/* ============================================
+   Toast Notifications
+============================================ */
+.toast-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 300px;
+    animation: slideInRight 0.3s ease;
+    cursor: pointer;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* ============================================
+   Dashboard Specific
+============================================ */
+#currentDateTime {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    font-weight: 500;
+}
+
+.checkin-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.checkin-card .btn {
+    background: white;
+    color: #667eea;
+    border: none;
+}
+
+.checkin-card .btn:hover {
+    transform: scale(1.05);
+}
+
+/* ============================================
+   Loading Spinner
+============================================ */
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(0,0,0,0.1);
+    border-radius: 50%;
+    border-top-color: var(--primary-color);
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   Animations
+============================================ */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card, .stats-card {
+    animation: fadeInUp 0.5s ease;
+}
+
+/* ============================================
+   Responsive Design
+============================================ */
+@media (max-width: 768px) {
+    .sidebar {
+        position: static;
+        min-height: auto;
+        margin-bottom: 20px;
+    }
+    
+    .main-content {
+        margin-left: 0;
+    }
+    
+    .stats-card {
+        margin-bottom: 15px;
+    }
+}
+/* Weather Widget */
+.weather-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 15px;
+}
+
+.weather-card i {
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+/* Admin Panel Specific Styles */
+.badge-success {
+    background: #10b981;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+.badge-danger {
+    background: #ef4444;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+.badge-warning {
+    background: #f59e0b;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+.badge-info {
+    background: #3b82f6;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+/* Admin Table Styles */
+.admin-table {
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.admin-table thead {
+    background: #1e293b;
+    color: white;
+}
+
+.admin-table thead th {
+    padding: 12px;
+    font-weight: 600;
+}
+
+.admin-table tbody td {
+    padding: 10px;
+    vertical-align: middle;
+}
+
+/* Action Buttons */
+.action-btn {
+    padding: 5px 8px;
+    margin: 0 2px;
+    border-radius: 5px;
+    font-size: 12px;
+}
+
+/* Toast Notification */
+.toast-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 300px;
+    animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+/* Leave date styling */
+.flatpickr-day.leave-date {
+    background: #f59e0b !important;
+    color: white !important;
+    border: none !important;
+    position: relative;
+}
+
+.flatpickr-day.leave-date::after {
+    content: "🌴";
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 8px;
+    opacity: 0.8;
+}
+/* ============================================
+   Enhanced Calendar Color Coding
+============================================ */
+
+/* Present, Late, Half Day - All use Green */
+.flatpickr-day.attendance-present {
+    background: #10b981 !important;
+    color: white !important;
+    border: none !important;
+    position: relative;
+}
+
+.flatpickr-day.attendance-present::after {
+    content: "✓";
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 10px;
+    opacity: 0.9;
+}
+
+/* Absent - Red */
+.flatpickr-day.attendance-absent {
+    background: #ef4444 !important;
+    color: white !important;
+    border: none !important;
+    position: relative;
+}
+
+.flatpickr-day.attendance-absent::after {
+    content: "✗";
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    opacity: 0.9;
+}
+
+/* Default Marked - Blue */
+.flatpickr-day.attendance-marked {
+    background: #3b82f6 !important;
+    color: white !important;
+    border: none !important;
+}
+
+/* Leave Date - Purple */
+.flatpickr-day.leave-date {
+    background: #8b5cf6 !important;
+    color: white !important;
+    border: none !important;
+    position: relative;
+}
+
+.flatpickr-day.leave-date::after {
+    content: "🌴";
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 10px;
+    opacity: 0.9;
+}
+
+/* Holiday - Gray */
+.flatpickr-day.holiday-date {
+    background: #6b7280 !important;
+    color: white !important;
+    border: none !important;
+    position: relative;
+}
+
+.flatpickr-day.holiday-date::after {
+    content: "🎉";
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 10px;
+    opacity: 0.9;
+}
+
+/* Future Date - Light Gray */
+.flatpickr-day.future-date {
+    background: #f3f4f6 !important;
+    color: #9ca3af !important;
+    cursor: not-allowed;
+}
+
+/* Festival Day - Gradient */
+.flatpickr-day.festival-day {
+    background: linear-gradient(135deg, #f59e0b, #ef4444) !important;
+    color: white !important;
+    position: relative;
+}
+
+.flatpickr-day.festival-day::after {
+    content: "🎉";
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    font-size: 10px;
+}
+
+/* Hover tooltip */
+.flatpickr-day[title] {
+    cursor: help;
+}
+
+/* ============================================
+   Table Cell Fixes
+============================================ */
+
+/* Ensure table cells display properly */
+.table td, .table th {
+    vertical-align: middle;
+    padding: 12px;
+}
+
+/* Fix for attendance table */
+#attendanceTableBody td,
+#leaveTableBody td,
+#employeesTableBody td,
+#holidaysTableBody td {
+    vertical-align: middle;
+    white-space: normal;
+    word-wrap: break-word;
+}
+
+/* Badge styles for status */
+.badge-success, .badge.bg-success {
+    background: #10b981 !important;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+.badge-danger, .badge.bg-danger {
+    background: #ef4444 !important;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+.badge-warning, .badge.bg-warning {
+    background: #f59e0b !important;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+.badge-info, .badge.bg-info {
+    background: #3b82f6 !important;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+.badge-secondary, .badge.bg-secondary {
+    background: #6b7280 !important;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+/* Table responsive fixes */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Fix for small screens */
+@media (max-width: 768px) {
+    .table td, .table th {
+        padding: 8px;
+        font-size: 12px;
+    }
+    
+    .badge {
+        font-size: 10px;
+        padding: 3px 8px;
+    }
+}
+
+/* Leave request form */
+#leaveRequestForm .form-control,
+#employeeForm .form-control,
+#attendanceForm .form-control {
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    padding: 10px 15px;
+}
+
+#leaveRequestForm .form-control:focus,
+#employeeForm .form-control:focus,
+#attendanceForm .form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+}
+
+/* Modal styling */
+.modal-content {
+    border-radius: 20px;
+    border: none;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 20px 20px 0 0;
+}
+
+.modal-header .btn-close {
+    filter: brightness(0) invert(1);
+}
+
+/* Info note styling */
+.info-note {
+    background: #f3f4f6;
+    border-radius: 12px;
+    font-size: 12px;
+    color: #4b5563;
+}
+
+/* Selected dates badge */
+.selected-dates-badge {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 25px;
+    font-size: 12px;
+    margin: 4px;
+    display: inline-block;
+    font-weight: 500;
+}
+
+/* Festival section */
+.festivals-section {
+    background: linear-gradient(135deg, #fff5eb 0%, #ffe8e0 100%);
+    border-radius: 20px;
+    padding: 15px;
+    border-left: 4px solid #f59e0b;
+}
+
+.festival-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.festival-item:last-child {
+    border-bottom: none;
+}
+
+.festival-date {
+    background: #f59e0b;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 12px;
+    min-width: 80px;
+    text-align: center;
+}
+
+.festival-name {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.festival-icon {
+    margin-left: auto;
+    font-size: 20px;
+}
+
+/* Success pulse animation */
+.success-pulse {
+    animation: pulse 0.5s ease;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Bulk attendance section */
+.bulk-attendance-section {
+    background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+    border-radius: 20px;
+    padding: 20px;
+    border: 1px solid rgba(102,126,234,0.2);
+}
+
+.bulk-btn {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border: none;
+    padding: 14px;
+    font-weight: 600;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.bulk-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(102,126,234,0.4);
+}
+
+.bulk-btn:disabled {
+    opacity: 0.6;
+    transform: none;
+}
+
+.info-icon {
+    background: #f3f4f6;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 15px;
+}

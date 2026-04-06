@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Leaves - Beechwood Solutions</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .sidebar-logo {
+            text-align: center;
+            padding: 20px 0 15px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar-logo img {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+            background: white;
+            border-radius: 50%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .sidebar-logo h5 {
+            color: white;
+            font-size: 16px;
+            margin: 8px 0 0;
+        }
+        .sidebar-logo p {
+            color: rgba(255,255,255,0.7);
+            font-size: 11px;
+            margin: 0;
+        }
+        .badge-success {
+            background-color: #10b981;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        .badge-warning {
+            background-color: #f59e0b;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        .badge-danger {
+            background-color: #ef4444;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        .badge-secondary {
+            background-color: #6b7280;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar with Logo -->
+            <nav class="col-md-2 d-md-block sidebar">
+                <div class="position-sticky">
+                    <div class="sidebar-logo">
+                        <img src="assets/images/beechwood_logo.png" alt="Beechwood Solutions">
+                        <h5>Beechwood Solutions India</h5>
+                        <p>Employee Portal</p>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="employee-dashboard.html">
+                                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="employee-attendance.html">
+                                <i class="fas fa-calendar-check me-2"></i> My Attendance
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="employee-leaves.html">
+                                <i class="fas fa-plane me-2"></i> My Leaves
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="employee-profile.html">
+                                <i class="fas fa-user me-2"></i> My Profile
+                            </a>
+                        </li>
+                        <hr class="bg-light">
+                        <li class="nav-item">
+                            <a class="nav-link text-danger" href="#" id="logoutBtn">
+                                <i class="fas fa-sign-out-alt me-2"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-10 ms-sm-auto px-md-4 main-content">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    
+                    <button class="btn btn-primary" id="requestLeaveBtn">
+                        <i class="fas fa-plus"></i> Request Leave
+                    </button>
+                </div>
+
+                <!-- Simple Header (Replaces Balance Cards) -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h4 class="mb-2">My Leave History</h4>
+                        <p class="text-muted">Showing leave requests for selected month/year</p>
+                    </div>
+                </div>
+
+                <!-- Month/Year Filter for Leaves -->
+                <div class="card shadow mb-4">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-5">
+                                <label>Month</label>
+                                <select id="leaveMonth" class="form-control">
+                                    <!-- Months will be populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <label>Year</label>
+                                <select id="leaveYear" class="form-control">
+                                    <!-- Years will be populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label>&nbsp;</label>
+                                <button class="btn btn-primary w-100" id="filterLeaveBtn">
+                                    <i class="fas fa-search"></i> Filter
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <<!-- Leave Requests Table -->
+<div class="card shadow">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Leave History</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0">
+                <thead>
+                    <tr style="background-color: #1e293b; color: white;">
+                        <th class="text-center" style="background-color: #1e293b; color: white;">Leave Type</th>
+                        <th class="text-center" style="background-color: #1e293b; color: white;">Start Date</th>
+                        <th class="text-center" style="background-color: #1e293b; color: white;">End Date</th>
+                        <th class="text-center" style="background-color: #1e293b; color: white;">Days</th>
+                        <th class="text-center" style="background-color: #1e293b; color: white;">Reason</th>
+                        <th class="text-center" style="background-color: #1e293b; color: white;">Status</th>
+                        <th class="text-center" style="background-color: #1e293b; color: white;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="leaveTableBody">
+                    <tr>
+                        <td colspan="7" class="text-center py-4">Loading leave records...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Leave Request Modal -->
+    <div class="modal fade" id="leaveModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Request Leave</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="leaveRequestForm">
+                        <div class="mb-3">
+                            <label>Leave Type</label>
+                            <select class="form-control" id="leaveType" required>
+                                <option value="Sick Leave">Sick Leave</option>
+                                <option value="Paid Leave">Paid Leave</option>
+                                <option value="Casual Leave">Casual Leave</option>
+                                <option value="Unpaid Leave">Unpaid Leave</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label>Start Date</label>
+                            <input type="date" class="form-control" id="startDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>End Date</label>
+                            <input type="date" class="form-control" id="endDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>Reason</label>
+                            <textarea class="form-control" id="reason" rows="3" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100" id="submitLeaveBtn">Submit Request</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="js/socket.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/employee-leaves.js"></script>
+</body>
+</html>

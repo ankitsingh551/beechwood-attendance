@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Dashboard - Beechwood Solutions</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .sidebar-logo {
+            text-align: center;
+            padding: 20px 0 15px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .sidebar-logo img {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+            background: white;
+            border-radius: 50%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .sidebar-logo img:hover {
+            transform: scale(1.05);
+        }
+        
+        .sidebar-logo h5 {
+            color: white;
+            font-size: 16px;
+            margin: 8px 0 0;
+            font-weight: 600;
+        }
+        
+        .sidebar-logo p {
+            color: rgba(255,255,255,0.7);
+            font-size: 11px;
+            margin: 0;
+        }
+        
+        .sidebar .nav-link {
+            padding: 10px 20px;
+            margin: 3px 0;
+        }
+        
+        .stats-card {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            border-radius: 20px;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        /* Calendar Card */
+        .calendar-card {
+            border: none;
+            border-radius: 24px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        }
+        
+        .calendar-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .calendar-header h5 {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .calendar-container {
+            padding: 24px;
+            background: #ffffff;
+        }
+        
+        /* Festival Badge */
+        .festival-badge {
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 20px;
+            margin-left: 5px;
+            display: inline-block;
+        }
+        
+        /* Bulk Attendance Section */
+        .bulk-attendance-section {
+            background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid rgba(102,126,234,0.2);
+        }
+        
+        .selected-dates-badge {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 25px;
+            font-size: 12px;
+            margin: 4px;
+            display: inline-block;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(102,126,234,0.3);
+        }
+        
+        /* Calendar Custom Styles */
+        .flatpickr-calendar {
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .flatpickr-day {
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        
+        .flatpickr-day:hover {
+            background: #667eea;
+            color: white;
+            transform: scale(1.05);
+        }
+        
+        .flatpickr-day.selected {
+            background: linear-gradient(135deg, #667eea, #764ba2) !important;
+            border: none !important;
+            color: white !important;
+            font-weight: bold;
+        }
+        
+        .flatpickr-day.marked-date {
+            background: #10b981 !important;
+            color: white !important;
+            border: none !important;
+            position: relative;
+        }
+        
+        .flatpickr-day.marked-date::after {
+            content: "✓";
+            position: absolute;
+            bottom: 2px;
+            right: 4px;
+            font-size: 8px;
+            opacity: 0.8;
+        }
+        
+        .flatpickr-day.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .flatpickr-day.festival-day {
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            color: white;
+            position: relative;
+        }
+        
+        .flatpickr-day.festival-day::after {
+            content: "🎉";
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: 8px;
+        }
+        
+        /* Upcoming Festivals Section */
+        .festivals-section {
+            background: linear-gradient(135deg, #fff5eb 0%, #ffe8e0 100%);
+            border-radius: 20px;
+            padding: 15px;
+            margin-top: 20px;
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .festival-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .festival-item:last-child {
+            border-bottom: none;
+        }
+        
+        .festival-date {
+            background: #f59e0b;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: 12px;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        .festival-name {
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .festival-icon {
+            margin-left: auto;
+            font-size: 20px;
+        }
+        
+        /* Success Animation */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .success-pulse {
+            animation: pulse 0.5s ease;
+        }
+        
+        .bulk-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            padding: 14px;
+            font-weight: 600;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .bulk-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102,126,234,0.4);
+        }
+        
+        .bulk-btn:disabled {
+            opacity: 0.6;
+            transform: none;
+        }
+        
+        .info-icon {
+            background: #f3f4f6;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-2 d-md-block sidebar">
+                <div class="position-sticky">
+                    <div class="sidebar-logo">
+                        <img src="assets/images/beechwood_logo.png" alt="Beechwood Solutions">
+                        <h5>Beechwood Solutions India</h5>
+                        <p>Employee Portal</p>
+                    </div>
+                    
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="employee-dashboard.html">
+                                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="employee-attendance.html">
+                                <i class="fas fa-calendar-check me-2"></i> My Attendance
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="employee-leaves.html">
+                                <i class="fas fa-plane me-2"></i> My Leaves
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="employee-profile.html">
+                                <i class="fas fa-user me-2"></i> My Profile
+                            </a>
+                        </li>
+                        <hr class="bg-light">
+                        <li class="nav-item">
+                            <a class="nav-link text-danger" href="#" id="logoutBtn">
+                                <i class="fas fa-sign-out-alt me-2"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-10 ms-sm-auto px-md-4 main-content">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Employee Dashboard</h1>
+                    <div>
+                        <span class="text-muted">Welcome, <strong id="userName"></strong></span>
+                        <img src="https://ui-avatars.com/api/?background=667eea&color=fff&name=Employee" class="rounded-circle ms-2" width="40" height="40">
+                    </div>
+                </div>
+
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-calendar-alt me-2"></i> 
+                    <span id="currentDate"></span> | 
+                    <i class="fas fa-clock me-2"></i> 
+                    <span id="currentTime"></span>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card gradient-card checkin-card shadow-lg">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Today's Attendance</h5>
+                                <div class="display-4 mb-3" id="checkInTime">--:-- --</div>
+                                <div class="mb-3" id="checkOutTime"></div>
+                                <button class="btn btn-success btn-lg" id="checkInBtn">
+                                    <i class="fas fa-sign-in-alt"></i> Check In
+                                </button>
+                                <button class="btn btn-danger btn-lg d-none" id="checkOutBtn">
+                                    <i class="fas fa-sign-out-alt"></i> Check Out
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card stats-card bg-gradient-primary text-white" id="presentCard">
+                                    <div class="card-body">
+                                        <h6>Present Days</h6>
+                                        <h2 id="presentDays">0</h2>
+                                        <small>This Month</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card stats-card bg-gradient-warning" id="lateCard">
+                                    <div class="card-body">
+                                        <h6>Late / Half Day</h6>
+                                        <h2 id="lateDays">0 / 0</h2>
+                                        <small>This Month</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card stats-card bg-gradient-danger text-white" id="absentCard">
+                                    <div class="card-body">
+                                        <h6>Absent</h6>
+                                        <h2 id="absentDays">0</h2>
+                                        <small>This Month</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card stats-card bg-gradient-info text-white" id="leaveBalanceCard">
+                                    <div class="card-body">
+                                        <h6>Leave Balance</h6>
+                                        <h2 id="leaveBalance">20/20</h2>
+                                        <small>Annual Leaves</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bulk Attendance Calendar Section -->
+                <div class="card calendar-card shadow mb-4">
+                    <div class="calendar-header">
+                        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i> Mass Attendance Marking</h5>
+                        <small>Select multiple dates to mark attendance in bulk (Already marked dates are disabled)</small>
+                    </div>
+                    <div class="calendar-container">
+                        <div class="row">
+                            <div class="col-lg-8">
+                                <div id="bulkCalendar"></div>
+                            </div>
+                            <div class="col-lg-4">
+                                <div class="bulk-attendance-section">
+                                    <div class="info-icon">
+                                        <i class="fas fa-info-circle text-primary me-2"></i>
+                                        <small class="text-muted">Click on dates to select multiple days. Already marked dates are disabled.</small>
+                                    </div>
+                                    
+                                    <h6 class="mb-3"><i class="fas fa-calendar-check me-2 text-success"></i> Selected Dates</h6>
+                                    <div id="selectedDatesContainer" class="mb-3" style="min-height: 100px;">
+                                        <p class="small text-muted">No dates selected</p>
+                                    </div>
+                                    
+                                    <div class="mt-3">
+                                        <label class="form-label fw-semibold"><i class="fas fa-flag-checkered me-2"></i> Status</label>
+                                        <select class="form-control" id="bulkStatus" style="border-radius: 12px;">
+                                            <option value="PRESENT">✅ Present</option>
+                                            <option value="LATE">⏰ Late</option>
+                                            <option value="HALF_DAY">🌓 Half Day</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <button class="btn btn-primary w-100 mt-4 bulk-btn" id="submitBulkAttendanceBtn">
+                                        <i class="fas fa-check-double me-2"></i> Mark Attendance for Selected Dates
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Upcoming Festivals Section -->
+                        <div class="festivals-section mt-4" id="festivalsSection">
+                            <h6 class="mb-2"><i class="fas fa-gift me-2 text-warning"></i> Upcoming Festivals & Holidays</h6>
+                            <div id="festivalsList">
+                                <div class="text-center py-2">
+                                    <div class="spinner-border spinner-border-sm text-warning" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <small class="text-muted ms-2">Loading festivals...</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow">
+                    <div class="card-header">
+                        <h5>Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-outline-primary me-2" id="requestLeaveQuickBtn">
+                            <i class="fas fa-plus"></i> Request Leave
+                        </button>
+                        <button class="btn btn-outline-info me-2" id="viewAttendanceQuickBtn">
+                            <i class="fas fa-history"></i> View Attendance History
+                        </button>
+                        <button class="btn btn-outline-success" id="downloadReportBtn">
+                            <i class="fas fa-download"></i> Download My Report
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div class="modal fade" id="locationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Location Access Required</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Please allow location access to mark your attendance.</p>
+                    <div id="locationStatus" class="alert alert-info">Getting your location...</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmLocationBtn">Confirm Location</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="js/socket.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="js/api.js"></script>
+    <script src="js/employee-dashboard.js"></script>
+</body>
+</html>

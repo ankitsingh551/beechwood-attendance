@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Beechwood Solutions India</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --admin-primary: #1e293b;
+            --admin-secondary: #0f172a;
+            --admin-accent: #3b82f6;
+        }
+        
+        body {
+            background: #f1f5f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+        }
+        
+        .admin-sidebar {
+            background: linear-gradient(135deg, var(--admin-primary), var(--admin-secondary));
+            min-height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 100;
+            width: 16.666%;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        .admin-sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+        
+        .admin-sidebar::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .admin-sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 5px;
+        }
+        
+        .sidebar-logo {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+        
+        .sidebar-logo img {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+            background: white;
+            border-radius: 50%;
+            padding: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        
+        .sidebar-logo h5 {
+            color: white;
+            margin: 10px 0 5px;
+            font-size: 16px;
+        }
+        
+        .sidebar-logo p {
+            color: rgba(255,255,255,0.6);
+            font-size: 11px;
+            margin: 0;
+        }
+        
+        .sidebar-nav {
+            flex: 1;
+            padding: 0 10px;
+        }
+        
+        .admin-sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            margin: 5px 0;
+            border-radius: 10px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .admin-sidebar .nav-link:hover,
+        .admin-sidebar .nav-link.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateX(5px);
+        }
+        
+        .admin-sidebar .nav-link i {
+            width: 25px;
+        }
+        
+        .sidebar-footer {
+            padding: 15px 10px 25px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: auto;
+            flex-shrink: 0;
+        }
+        
+        .sidebar-footer .nav-link {
+            color: #ef4444 !important;
+        }
+        
+        .sidebar-footer .nav-link:hover {
+            background: rgba(239,68,68,0.2);
+            color: #ff6b6b !important;
+        }
+        
+        .admin-main {
+            margin-left: 16.666%;
+            padding: 20px;
+        }
+        
+        .stat-card {
+            border: none;
+            border-radius: 15px;
+            transition: transform 0.3s;
+            cursor: pointer;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .admin-table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        
+        .admin-table thead {
+            background: var(--admin-primary);
+            color: white;
+        }
+        
+        .modal-content {
+            border-radius: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .admin-sidebar {
+                position: static;
+                width: 100%;
+                min-height: auto;
+            }
+            .admin-main {
+                margin-left: 0;
+            }
+        }
+        
+        .action-btn {
+            padding: 5px 10px;
+            margin: 0 2px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        
+        .admin-header-top {
+            background: white;
+            border-radius: 15px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .badge-success {
+            background: #10b981;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        
+        .badge-danger {
+            background: #ef4444;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        
+        .badge-warning {
+            background: #f59e0b;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        
+        .badge-info {
+            background: #3b82f6;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        
+        .toast-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+            animation: slideInRight 0.3s ease;
+            cursor: pointer;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .section {
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+        }
+        
+        /* Holiday badge styles */
+        .badge-festival {
+            background: #f59e0b;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        
+        .badge-holiday {
+            background: #ef4444;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        
+        .badge-restricted {
+            background: #3b82f6;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <nav class="col-md-2 d-md-block admin-sidebar">
+                <div class="sidebar-logo">
+                    <img src="assets/images/beechwood_logo.png" alt="Beechwood Solutions">
+                    <h5>Beechwood Solutions India</h5>
+                    <p>Admin Control Panel</p>
+                </div>
+                
+                <div class="sidebar-nav">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-section="dashboard">
+                                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-section="employees">
+                                <i class="fas fa-users me-2"></i> Employee Management
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-section="attendance">
+                                <i class="fas fa-calendar-check me-2"></i> Attendance Management
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-section="leaves">
+                                <i class="fas fa-plane me-2"></i> Leave Approvals
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-section="reports">
+                                <i class="fas fa-chart-bar me-2"></i> Reports
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-section="holidays">
+                                <i class="fas fa-gift me-2"></i> Holiday Management
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-section="settings">
+                                <i class="fas fa-cog me-2"></i> Settings
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="sidebar-footer">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link text-danger" id="logoutBtn" style="cursor: pointer;">
+                                <i class="fas fa-sign-out-alt me-2"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="col-md-10 ms-sm-auto px-md-4 admin-main">
+                <div class="admin-header-top d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="mb-0" id="sectionTitle">Admin Dashboard</h4>
+                        <small class="text-muted">Beechwood Solutions India - Attendance Management System</small>
+                    </div>
+                    <div>
+                        <span class="text-muted">
+                            <i class="fas fa-user-shield"></i> Admin: <strong id="adminName">Administrator</strong>
+                        </span>
+                        <span id="adminDateTime" class="text-muted ms-3"></span>
+                    </div>
+                </div>
+
+                <!-- Dashboard Section -->
+                <div id="dashboardSection" class="section active">
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card stat-card bg-primary text-white" data-section="employees">
+                                <div class="card-body">
+                                    <h6>Total Employees</h6>
+                                    <h2 id="totalEmployees">0</h2>
+                                    <small>Active Employees</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stat-card bg-success text-white" data-section="attendance">
+                                <div class="card-body">
+                                    <h6>Present Today</h6>
+                                    <h2 id="presentToday">0</h2>
+                                    <small>Checked In</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stat-card bg-warning text-white" data-section="leaves">
+                                <div class="card-body">
+                                    <h6>Pending Leaves</h6>
+                                    <h2 id="pendingLeaves">0</h2>
+                                    <small>Awaiting Approval</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stat-card bg-info text-white" data-section="attendance">
+                                <div class="card-body">
+                                    <h6>On Leave Today</h6>
+                                    <h2 id="onLeaveToday">0</h2>
+                                    <small>Approved Leaves</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card shadow">
+                                <div class="card-header">
+                                    <h5>Monthly Attendance Overview</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="adminChart" height="300"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card shadow">
+                                <div class="card-header">
+                                    <h5>Quick Actions</h5>
+                                </div>
+                                <div class="card-body">
+                                    <button class="btn btn-primary w-100 mb-2" id="quickAddEmployeeBtn">
+                                        <i class="fas fa-user-plus"></i> Add New Employee
+                                    </button>
+                                    <button class="btn btn-success w-100 mb-2" id="quickMarkAttendanceBtn">
+                                        <i class="fas fa-calendar-check"></i> Mark Attendance
+                                    </button>
+                                    <button class="btn btn-warning w-100 mb-2" id="quickApproveLeavesBtn">
+                                        <i class="fas fa-check-double"></i> Approve Leaves
+                                    </button>
+                                    <button class="btn btn-info w-100" id="quickExportReportBtn">
+                                        <i class="fas fa-file-excel"></i> Export Report
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Employee Management Section -->
+                <div id="employeesSection" class="section">
+                    <div class="card shadow">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5>Employee Management</h5>
+                            <button class="btn btn-primary" id="addEmployeeBtn">
+                                <i class="fas fa-plus"></i> Add New Employee
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table admin-table table-bordered">
+                                    <thead>
+                                         <th>ID</th><th>Name</th><th>Email</th><th>Department</th><th>Designation</th><th>Joining Date</th><th>Status</th><th>Actions</th>
+                                    </thead>
+                                    <tbody id="employeesTableBody">
+                                         <td colspan="8" class="text-center">Loading employees... </td.
+                                    </tbody>
+                                 </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attendance Management Section -->
+                <div id="attendanceSection" class="section">
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h5>Attendance Management</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label>Select Employee</label>
+                                    <select id="attendanceEmployee" class="form-control">
+                                        <option value="">Select Employee</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label>Month</label>
+                                    <select id="attendanceMonth" class="form-control">
+                                        <option value="">Select Month</option>
+                                        <option value="1">January</option>
+                                        <option value="2">February</option>
+                                        <option value="3">March</option>
+                                        <option value="4">April</option>
+                                        <option value="5">May</option>
+                                        <option value="6">June</option>
+                                        <option value="7">July</option>
+                                        <option value="8">August</option>
+                                        <option value="9">September</option>
+                                        <option value="10">October</option>
+                                        <option value="11">November</option>
+                                        <option value="12">December</option>
+
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label>Year</label>
+                                    <select id="attendanceYear" class="form-control">
+                                        <option value="">Select year</option>
+                                        <option value="2025">2025</option>
+                                        <option value="2026">2026</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label>&nbsp;</label>
+                                    <button class="btn btn-primary w-100" id="loadAttendanceBtn">
+                                        <i class="fas fa-search"></i> Load Attendance
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                            <div class="col-md-12 d-flex gap-2">
+                                <button class="btn btn-success" id="markAttendanceBtn">
+                                    <i class="fas fa-calendar-plus"></i> Mark Attendance
+                                </button>
+
+                                <button class="btn btn-secondary" id="exportAttendanceBtn">
+                                    <i class="fas fa-download"></i> Export CSV
+                                </button>
+                            </div>
+                        </div>
+                            <div class="table-responsive">
+                                <table class="table admin-table">
+                                    <thead>
+                                         <th>Date</th><th>Check In</th><th>Check Out</th><th>Status</th><th>Working Hours</th>
+                                    </thead>
+                                    <tbody id="attendanceTableBody">
+                                         <td colspan="5" class="text-center">Select an employee to view attendance</td.
+                                    </tbody>
+                                 </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leave Approvals Section -->
+                <div id="leavesSection" class="section">
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h5>Leave Requests - Pending Approval</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table admin-table">
+                                    <thead>
+                                         <th>Employee</th><th>Leave Type</th><th>Start Date</th><th>End Date</th><th>Days</th><th>Reason</th><th>Actions</th>
+                                    </thead>
+                                    <tbody id="leaveRequestsBody"></tbody>
+                                 </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reports Section -->
+                <div id="reportsSection" class="section">
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h5>Generate Reports</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label>Report Type</label>
+                                    <select id="reportType" class="form-control">
+                                        <option value="employee">Employee Report</option>
+                                        <option value="leave">Leave Report</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label>&nbsp;</label>
+                                    <button class="btn btn-primary w-100" id="generateReportBtn">
+                                        <i class="fas fa-chart-line"></i> Generate Report
+                                    </button>
+                                </div>
+                                <div class="col-md-4">
+                                    <label>&nbsp;</label>
+                                    <button class="btn btn-success w-100" id="exportReportBtn">
+                                        <i class="fas fa-download"></i> Export CSV
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mt-4" id="reportPreview">
+                                <p class="text-muted text-center">Select a report type and click Generate Report</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Holiday Management Section -->
+                <div id="holidaysSection" class="section">
+                    <div class="card shadow">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5><i class="fas fa-gift me-2 text-warning"></i> Holiday & Festival Management</h5>
+                            <button class="btn btn-primary" id="addHolidayBtn">
+                                <i class="fas fa-plus"></i> Add Holiday/Festival
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table admin-table table-bordered">
+                                    <thead>
+                                        <tr class="bg-dark text-white">
+                                            <th>Date</th>
+                                            <th>Name</th>
+                                            <th>Type</th>
+                                            <th>Icon</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                         </tr>
+                                    </thead>
+                                    <tbody id="holidaysTableBody">
+                                         <td colspan="6" class="text-center">Loading holidays... </td.
+                                    </tbody>
+                                 </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Section -->
+                <div id="settingsSection" class="section">
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h5>System Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="settingsForm">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label>Company Name</label>
+                                        <input type="text" class="form-control" id="companyName" value="Beechwood Solutions India">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label>Annual Leave Quota</label>
+                                        <input type="number" class="form-control" id="leaveQuota" value="20">
+                                    </div>
+                                    <div class="col-md-12 mt-3">
+                                        <button type="button" class="btn btn-primary" id="saveSettingsBtn">Save Settings</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add/Edit Employee Modal -->
+    <div class="modal fade" id="employeeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="employeeModalTitle">Add New Employee</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="employeeForm">
+                        <input type="hidden" id="employeeId">
+                        <div class="mb-3">
+                            <label>Full Name *</label>
+                            <input type="text" class="form-control" id="empName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>Email *</label>
+                            <input type="email" class="form-control" id="empEmail" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>Department</label>
+                            <select class="form-control" id="empDepartment">
+                                <option>IT & Consulting</option>
+                                <option>HR</option>
+                                <option>Marketing</option>
+                                <option>Sales</option>
+                                <option>Finance</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label>Designation</label>
+                            <input type="text" class="form-control" id="empDesignation" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>Phone</label>
+                            <input type="text" class="form-control" id="empPhone">
+                        </div>
+                        <div class="info-note bg-light p-2 rounded small">
+                            <i class="fas fa-envelope me-1"></i>
+                            Login credentials will be sent automatically to the provided email.
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveEmployeeBtn">Add Employee</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mark Attendance Modal -->
+    <div class="modal fade" id="attendanceModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Mark Attendance</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="attendanceForm">
+                        <div class="mb-3">
+                            <label>Employee</label>
+                            <select class="form-control" id="markEmployee" required></select>
+                        </div>
+                        <div class="mb-3">
+                            <label>Date</label>
+                            <input type="date" class="form-control" id="markDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>Status</label>
+                            <select class="form-control" id="markStatus">
+                                <option value="PRESENT">Present</option>
+                                <option value="ABSENT">Absent</option>
+                                <option value="LATE">Late</option>
+                                <option value="HALF_DAY">Half Day</option>
+                                <option value="LEAVE">Leave</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label>Check In Time</label>
+                            <input type="time" class="form-control" id="markCheckIn">
+                        </div>
+                        <div class="mb-3">
+                            <label>Check Out Time</label>
+                            <input type="time" class="form-control" id="markCheckOut">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveAttendanceBtn">Save Attendance</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Holiday Modal -->
+    <div class="modal fade" id="holidayModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="holidayModalTitle">Add Holiday/Festival</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="holidayForm">
+                        <input type="hidden" id="holidayId">
+                        <div class="mb-3">
+                            <label class="form-label">Name *</label>
+                            <input type="text" class="form-control" id="holidayName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Date *</label>
+                            <input type="date" class="form-control" id="holidayDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Type</label>
+                            <select class="form-control" id="holidayType">
+                                <option value="festival">🎉 Festival</option>
+                                <option value="holiday">📅 Holiday</option>
+                                <option value="restricted">⚠️ Restricted Holiday</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Icon (Emoji)</label>
+                            <input type="text" class="form-control" id="holidayIcon" value="🎉" placeholder="e.g., 🎉, 🪔, 🌙">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description (Optional)</label>
+                            <textarea class="form-control" id="holidayDescription" rows="2"></textarea>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input type="checkbox" class="form-check-input" id="holidayIsActive" checked>
+                            <label class="form-check-label">Active</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveHolidayBtn">Save Holiday</button>
+                </div>
+            </div>
+        </div>
+    </div>
+     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="js/socket.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

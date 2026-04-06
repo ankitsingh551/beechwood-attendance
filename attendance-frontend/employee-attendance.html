@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Attendance - Beechwood Solutions</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .sidebar-logo {
+            text-align: center;
+            padding: 20px 0 15px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar-logo img {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+            background: white;
+            border-radius: 50%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .sidebar-logo h5 {
+            color: white;
+            font-size: 16px;
+            margin: 8px 0 0;
+        }
+        .sidebar-logo p {
+            color: rgba(255,255,255,0.7);
+            font-size: 11px;
+            margin: 0;
+        }
+        .table thead th {
+            background-color: #1e293b;
+            color: white;
+            font-weight: 600;
+            border-bottom: none;
+            text-align: center;
+        }
+        .table-bordered {
+            border: 1px solid #e2e8f0;
+        }
+        .table-bordered td, .table-bordered th {
+            border: 1px solid #e2e8f0;
+            vertical-align: middle;
+        }
+        .badge-PRESENT, .badge-success {
+            background-color: #10b981;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        .badge-ABSENT, .badge-danger {
+            background-color: #ef4444;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        .badge-LATE, .badge-warning {
+            background-color: #f59e0b;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        .badge-HALF_DAY {
+            background-color: #f59e0b;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        .badge-LEAVE, .badge-info {
+            background-color: #3b82f6;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        .badge-secondary {
+            background-color: #6b7280;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-2 d-md-block sidebar">
+                <div class="position-sticky pt-4">
+                    <div class="text-center mb-4">
+                        <img src="assets/images/beechwood_logo.png" 
+                             alt="Beechwood Solutions" 
+                             class="img-fluid" 
+                             style="width: 80px; height: 80px; object-fit: contain; border-radius: 50%; background: white; padding: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+                        <h5 class="text-white mt-2">Beechwood Solutions India</h5>
+                        <p class="text-white-50 small">Employee Portal</p>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="employee-dashboard.html">
+                                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="employee-attendance.html">
+                                <i class="fas fa-calendar-check me-2"></i> My Attendance
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="employee-leaves.html">
+                                <i class="fas fa-plane me-2"></i> My Leaves
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="employee-profile.html">
+                                <i class="fas fa-user me-2"></i> My Profile
+                            </a>
+                        </li>
+                        <hr class="bg-light">
+                        <li class="nav-item">
+                            <a class="nav-link text-danger" href="#" id="logoutBtn">
+                                <i class="fas fa-sign-out-alt me-2"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-10 ms-sm-auto px-md-4 main-content">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">My Attendance History</h1>
+                    <button class="btn btn-success" id="downloadAttendanceBtn">
+                        <i class="fas fa-download"></i> Export Excel
+                    </button>
+                </div>
+
+                <!-- Filters -->
+                <div class="card shadow mb-4">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label>Month</label>
+                                <select id="attendanceMonth" class="form-control">
+                                    <!-- Months will be populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label>Year</label>
+                                <select id="attendanceYear" class="form-control">
+                                    <!-- Years will be populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label>Status</label>
+                                <select id="statusFilter" class="form-control">
+                                    <option value="ALL">All</option>
+                                    <option value="Present">Present</option>
+                                    <option value="Absent">Absent</option>
+                                    <option value="Late">Late</option>
+                                    <option value="Half Day">Half Day</option>
+                                    <option value="Leave">Leave</option>
+                                    <option value="Holiday">Holiday</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <button class="btn btn-primary w-100" id="filterBtn">
+                                    <i class="fas fa-search"></i> Apply Filter
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white shadow-sm">
+                            <div class="card-body">
+                                <h6>Present</h6>
+                                <h2 id="presentCount">0</h2>
+                                <small>Days Present</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-danger text-white shadow-sm">
+                            <div class="card-body">
+                                <h6>Absent</h6>
+                                <h2 id="absentCount">0</h2>
+                                <small>Days Absent</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white shadow-sm">
+                            <div class="card-body">
+                                <h6>Late/Half Day</h6>
+                                <h2 id="lateCount">0</h2>
+                                <small>Late or Half Day</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white shadow-sm">
+                            <div class="card-body">
+                                <h6>Total Hours</h6>
+                                <h2 id="totalHours">0</h2>
+                                <small>Working Hours</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attendance Table -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Attendance Records</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-bordered mb-0">
+                                <thead>
+                                    <tr class="bg-dark text-white">
+                                        <th class="text-center">Date</th>
+                                        <th class="text-center">Day</th>
+                                        <th class="text-center">Check In</th>
+                                        <th class="text-center">Check Out</th>
+                                        <th class="text-center">Status</th>
+                                        <th class="text-center">Working Hours</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendanceTableBody">
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4">Loading attendance data...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="js/socket.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/employee-attendance.js"></script>
+</body>
+</html>
