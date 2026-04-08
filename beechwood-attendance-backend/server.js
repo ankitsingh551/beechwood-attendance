@@ -90,15 +90,9 @@
         // ============================================
 
         // Serve full frontend folder
-        const fs = require('fs');
 
         // Define both paths
-        const localPath = path.join(__dirname, '../attendance-frontend');
-        const renderPath = path.join(__dirname, 'attendance-frontend');
-
-        // Pick correct one
-        const frontendPath = fs.existsSync(localPath) ? localPath : renderPath;
-
+        const frontendPath = path.join(__dirname, '..', 'attendance-frontend');
         console.log('📁 Frontend Path:', frontendPath);
 
         app.use(express.static(frontendPath));
