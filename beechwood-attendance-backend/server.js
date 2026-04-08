@@ -140,17 +140,27 @@
         });
 
         // Frontend 404 handler - redirect to index.html for client-side routing
-        app.use((req, res) => {
-            // If it's an API request, return JSON error
-            if (req.url.startsWith('/api')) {
-                return res.status(404).json({
-                    status: 'error',
-                    message: `API route not found: ${req.url}`
-                });
-            }
-            // For frontend routes, serve index.html
-            res.sendFile(path.join(frontendPath, 'index.html'));
+        app.use((req, res, next) => {
+
+    // ✅ allow static files (CSS, JS, images)
+    if (
+        req.path.includes('.') || 
+        req.path.startsWith('/socket.io')
+    ) {
+        return next();
+    }
+
+    // ✅ API routes
+    if (req.path.startsWith('/api')) {
+        return res.status(404).json({
+            status: 'error',
+            message: `API route not found: ${req.path}`
         });
+    }
+
+    // ✅ frontend routes
+    res.sendFile(path.join(frontendPath, 'index.html'));
+});
 
         // ============================================
         // ERROR HANDLER
