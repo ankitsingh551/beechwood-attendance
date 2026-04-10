@@ -123,6 +123,44 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
+// ============================================
+// ADDED: DEBUG ENDPOINT TO FIND FRONTEND FILES ON RENDER
+// ============================================
+app.get('/debug-files', (req, res) => {
+    const searchPaths = [
+        '/opt/render/project/src',
+        '/opt/render/project/src/beechwood-attendance-backend',
+        process.cwd(),
+        __dirname,
+        path.join(__dirname, '..'),
+        path.join(process.cwd(), '..')
+    ];
+    
+    const results = {};
+    
+    searchPaths.forEach(searchPath => {
+        try {
+            if (fs.existsSync(searchPath)) {
+                const files = fs.readdirSync(searchPath);
+                results[searchPath] = {
+                    exists: true,
+                    hasAttendanceFrontend: files.includes('attendance-frontend'),
+                    hasPublic: files.includes('public'),
+                    hasCss: files.includes('css'),
+                    hasLibs: files.includes('libs'),
+                    first10Files: files.slice(0, 10)
+                };
+            } else {
+                results[searchPath] = { exists: false };
+            }
+        } catch(err) {
+            results[searchPath] = { error: err.message };
+        }
+    });
+    
+    res.json(results);
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
     res.status(200).json({
