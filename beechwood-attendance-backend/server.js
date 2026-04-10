@@ -1,152 +1,177 @@
-        // server.js - Main Application Entry Point
-        const rateLimit = require('express-rate-limit');
-        const http = require('http');
-        const { Server } = require('socket.io');
-        const express = require('express');
-        const dotenv = require('dotenv');
-        const cors = require('cors');
-        const morgan = require('morgan');
-        const helmet = require('helmet');
-        const compression = require('compression');
-        const path = require('path');
+// server.js - Main Application Entry Point
+const rateLimit = require('express-rate-limit');
+const http = require('http');
+const { Server } = require('socket.io');
+const express = require('express');
+const dotenv = require('dotenv');
+const cors = require('cors');
+const morgan = require('morgan');
+const helmet = require('helmet');
+const compression = require('compression');
+const path = require('path');
+const fs = require('fs'); // ADDED: For file system checks
 
-        // Load environment variables
-        dotenv.config();
+// Load environment variables
+dotenv.config();
 
-        // Import database connection
-        const connectDB = require('./config/database');
+// Import database connection
+const connectDB = require('./config/database');
 
-        // Import routes
-        const authRoutes = require('./routes/authRoutes');
-        const userRoutes = require('./routes/userRoutes');
-        const attendanceRoutes = require('./routes/attendanceRoutes');
-        const leaveRoutes = require('./routes/leaveRoutes');
-        const employeeRoutes = require('./routes/employeeRoutes');
-        const holidayRoutes = require('./routes/holidayRoutes');
-        const settingsRoutes = require('./routes/settingsRoutes');
+// Import routes
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const attendanceRoutes = require('./routes/attendanceRoutes');
+const leaveRoutes = require('./routes/leaveRoutes');
+const employeeRoutes = require('./routes/employeeRoutes');
+const holidayRoutes = require('./routes/holidayRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
 
-        // Import error handler
-        const { errorHandler } = require('./middleware/errorMiddleware');
+// Import error handler
+const { errorHandler } = require('./middleware/errorMiddleware');
 
-        // Initialize express app
-        const app = express();
+// Initialize express app
+const app = express();
 
-        // ============================================
-        // MIDDLEWARE
-        // ============================================
+// ============================================
+// MIDDLEWARE
+// ============================================
 
-        // Security middleware with CSP configured for inline scripts and styles
-        app.use(helmet({
-            contentSecurityPolicy: {
-                directives: {
-                    defaultSrc: ["'self'"],
-                    scriptSrc: ["'self'", "https:"],
-                    styleSrc: ["'self'", "'unsafe-inline'", "https:", "data:"],
-                    imgSrc: ["'self'", "data:", "https:", "http:"],
-                    connectSrc: ["'self'", "https:", "http:", "data:"],
-                    fontSrc: ["'self'", "https:", "http:", "data:"],
-                    objectSrc: ["'none'"],
-                    mediaSrc: ["'self'"],
-                    frameSrc: ["'none'"],
-                    frameAncestors: ["'self'"],
-                    baseUri: ["'self'"],
-                    formAction: ["'self'"],
-                },
-            },
-            crossOriginEmbedderPolicy: false,
-            crossOriginResourcePolicy: { policy: "cross-origin" }
-        }));
+// Security middleware with CSP configured for inline scripts and styles
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "https:"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https:", "data:"],
+            imgSrc: ["'self'", "data:", "https:", "http:"],
+            connectSrc: ["'self'", "https:", "http:", "data:"],
+            fontSrc: ["'self'", "https:", "http:", "data:"],
+            objectSrc: ["'none'"],
+            mediaSrc: ["'self'"],
+            frameSrc: ["'none'"],
+            frameAncestors: ["'self'"],
+            baseUri: ["'self'"],
+            formAction: ["'self'"],
+        },
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 
-        // Compression middleware
-        app.use(compression());
+// Compression middleware
+app.use(compression());
 
-        // CORS middleware
-        app.use(cors({
-            origin: process.env.CORS_ORIGIN?.split(',') || [
-                'http://localhost:5001',
-                'http://127.0.0.1:5001'
-            ],
-            credentials: true,
-            optionsSuccessStatus: 200
-        }));
+// CORS middleware
+app.use(cors({
+    origin: process.env.CORS_ORIGIN?.split(',') || [
+        'http://localhost:5001',
+        'http://127.0.0.1:5001'
+    ],
+    credentials: true,
+    optionsSuccessStatus: 200
+}));
 
-        // Logging middleware
-        if (process.env.NODE_ENV === 'development') {
-            app.use(morgan('dev'));
-        }
+// Logging middleware
+if (process.env.NODE_ENV === 'development') {
+    app.use(morgan('dev'));
+}
 
-        // Body parsing middleware
-        app.use(express.json());
-        app.use(express.urlencoded({ extended: true }));
+// Body parsing middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-        // ============================================
-        // DATABASE CONNECTION
-        // ============================================
+// ============================================
+// ADDED: FORCE CORRECT MIME TYPES FOR STATIC FILES
+// This fixes the CSS MIME type error on Render
+// ============================================
+app.use((req, res, next) => {
+    if (req.url.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css');
+    }
+    if (req.url.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript');
+    }
+    next();
+});
 
-        connectDB();
+// ============================================
+// DATABASE CONNECTION
+// ============================================
 
-        // ============================================
-        // STATIC FILES (Frontend)
-        // ============================================
+connectDB();
 
-        // Serve full frontend folder
+// ============================================
+// STATIC FILES (Frontend)
+// ============================================
 
-        // Define both paths
-        const frontendPath = path.join(__dirname, '..', 'attendance-frontend');
-        console.log('📁 Frontend Path:', frontendPath);
+// Serve full frontend folder
+// Define both paths
+const frontendPath = path.join(__dirname, '..', 'attendance-frontend');
+console.log('📁 Frontend Path:', frontendPath);
 
-        app.use(express.static(frontendPath));
+// ADDED: Verify CSS file exists
+const cssPath = path.join(frontendPath, 'css', 'style.css');
+console.log('✅ CSS file exists:', fs.existsSync(cssPath));
+if (!fs.existsSync(cssPath)) {
+    console.error('⚠️ WARNING: CSS file not found at:', cssPath);
+}
 
-        // Serve index.html on root route
-        app.get('/', (req, res) => {
-            res.sendFile(path.join(frontendPath, 'index.html'));
-        });
+app.use(express.static(frontendPath));
 
+// Serve index.html on root route
+app.get('/', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+});
 
-        // Health check
-        app.get('/api/health', (req, res) => {
-            res.status(200).json({
-                status: 'success',
-                message: 'Beechwood Attendance System API is running',
-                timestamp: new Date().toISOString(),
-                environment: process.env.NODE_ENV
-            });
-        });
-
-        const loginLimiter = rateLimit({
-        windowMs: 15 * 60 * 1000,
-        max: 5,
-        message: "Too many attempts, try later"
+// Health check
+app.get('/api/health', (req, res) => {
+    res.status(200).json({
+        status: 'success',
+        message: 'Beechwood Attendance System API is running',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV
     });
+});
 
-    app.use('/api/auth/login', loginLimiter);
-    app.use('/api/auth/forgot-password', loginLimiter);
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    message: "Too many attempts, try later"
+});
 
-        // API Routes
-        app.use('/api/auth', authRoutes);
-        app.use('/api/users', userRoutes);
-        app.use('/api/attendance', attendanceRoutes);
-        app.use('/api/leaves', leaveRoutes);
-        app.use('/api/employees', employeeRoutes);
-        app.use('/api/holidays', holidayRoutes);
-        app.use('/api/settings', settingsRoutes);
+app.use('/api/auth/login', loginLimiter);
+app.use('/api/auth/forgot-password', loginLimiter);
 
-        // ============================================
-        // 404 HANDLER
-        // ============================================
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/leaves', leaveRoutes);
+app.use('/api/employees', employeeRoutes);
+app.use('/api/holidays', holidayRoutes);
+app.use('/api/settings', settingsRoutes);
 
-        // API 404 handler
-        app.use('/api', (req, res) => {
-            res.status(404).json({
-                status: 'error',
-                message: `API route not found: ${req.originalUrl}`
-            });
-        });
+// ============================================
+// 404 HANDLER - FIXED FOR CSS/JS FILES
+// ============================================
 
-        // Frontend 404 handler - redirect to index.html for client-side routing
-        app.use((req, res, next) => {
+// API 404 handler
+app.use('/api', (req, res) => {
+    res.status(404).json({
+        status: 'error',
+        message: `API route not found: ${req.originalUrl}`
+    });
+});
 
-    // ✅ allow static files (CSS, JS, images)
+// Frontend 404 handler - redirect to index.html for client-side routing
+app.use((req, res, next) => {
+    // ADDED: Explicitly allow CSS and JS files to pass through
+    // This is the critical fix for the MIME type error
+    if (req.path.endsWith('.css') || req.path.endsWith('.js')) {
+        return next();
+    }
+    
+    // allow static files (CSS, JS, images)
     if (
         req.path.includes('.') || 
         req.path.startsWith('/socket.io')
@@ -154,7 +179,7 @@
         return next();
     }
 
-    // ✅ API routes
+    // API routes
     if (req.path.startsWith('/api')) {
         return res.status(404).json({
             status: 'error',
@@ -162,15 +187,15 @@
         });
     }
 
-    // ✅ frontend routes
+    // frontend routes
     res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
-        // ============================================
-        // ERROR HANDLER
-        // ============================================
+// ============================================
+// ERROR HANDLER
+// ============================================
 
-        app.use(errorHandler);
+app.use(errorHandler);
 
 // SOCKET + SERVER SETUP
 // ============================================
@@ -194,7 +219,7 @@ const jwt = require('jsonwebtoken');
 
 io.use((socket, next) => {
     try {
-       const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
+        const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
         if (!token) return next(new Error('Unauthorized'));
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -204,6 +229,7 @@ io.use((socket, next) => {
         next(new Error('Unauthorized'));
     }
 });
+
 // Socket connection
 io.on('connection', (socket) => {
     console.log('⚡ Socket connected:', socket.id);
