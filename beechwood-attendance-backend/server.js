@@ -32,6 +32,9 @@ const { errorHandler } = require('./middleware/errorMiddleware');
 // Initialize express app
 const app = express();
 
+// Trust proxy - Required for rate limiting behind reverse proxies (Render, Heroku, AWS)
+app.set('trust proxy', 1);
+
 // ============================================
 // MIDDLEWARE
 // ============================================
