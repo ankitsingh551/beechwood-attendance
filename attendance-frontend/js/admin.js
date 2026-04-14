@@ -59,8 +59,8 @@ window.showSection = function(sectionId) {
             <tr>
                 <td colspan="5" class="text-center">
                     Click "Load Attendance" to view data
-                </td>
-            </tr>
+                <\/td>
+            <\/tr>
         `;
     }
 }
@@ -392,20 +392,20 @@ function displayEmployeesTable() {
     tbody.innerHTML = '';
     
     if (!employees || employees.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center">No employees found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center">No employees found<\/td><\/tr>';
         return;
     }
     
     employees.forEach(emp => {
         const row = tbody.insertRow();
         row.innerHTML = `
-            <td class="align-middle">${emp.employeeId || '-'}</td>
-            <td class="align-middle">${emp.firstName || ''} ${emp.lastName || ''}</td>
-            <td class="align-middle">${emp.email || '-'}</td>
-            <td class="align-middle">${emp.department || '-'}</td>
-            <td class="align-middle">${emp.designation || '-'}</td>
-            <td class="align-middle">${formatDate(emp.joiningDate)}</td>
-            <td class="align-middle"><span class="badge ${emp.isActive ? 'badge-success' : 'badge-danger'}">${emp.isActive ? 'Active' : 'Inactive'}</span></td>
+            <td class="align-middle">${emp.employeeId || '-'}<\/td>
+            <td class="align-middle">${emp.firstName || ''} ${emp.lastName || ''}<\/td>
+            <td class="align-middle">${emp.email || '-'}<\/td>
+            <td class="align-middle">${emp.department || '-'}<\/td>
+            <td class="align-middle">${emp.designation || '-'}<\/td>
+            <td class="align-middle">${formatDate(emp.joiningDate)}<\/td>
+            <td class="align-middle"><span class="badge ${emp.isActive ? 'badge-success' : 'badge-danger'}">${emp.isActive ? 'Active' : 'Inactive'}</span><\/td>
             <td class="align-middle">
                 <button class="btn btn-sm btn-warning action-btn edit-employee" data-id="${emp._id}">
                     <i class="fas fa-edit"></i>
@@ -413,7 +413,7 @@ function displayEmployeesTable() {
                 <button class="btn btn-sm btn-danger action-btn delete-employee" data-id="${emp._id}">
                     <i class="fas fa-trash"></i>
                 </button>
-            </td>
+            <\/td>
         `;
     });
     
@@ -464,26 +464,48 @@ async function saveEmployee() {
     }
 }
 
+// ✅ FIXED: addEmployee function - Now works with ALL departments
 async function addEmployee() {
     const fullName = document.getElementById('empName').value.trim();
+    const email = document.getElementById('empEmail').value.trim();
+    const department = document.getElementById('empDepartment').value;
+    const designation = document.getElementById('empDesignation').value.trim();
+    const phone = document.getElementById('empPhone').value.trim();
+
+    if (!fullName || !email || !designation) {
+        showToast('Please fill all required fields', 'error');
+        return;
+    }
 
     const userData = {
-    fullName: fullName,          // ⭐ THIS is what backend needs
-    email: document.getElementById('empEmail').value,
-    role: 'employee',
-    department: document.getElementById('empDepartment').value,
-    designation: document.getElementById('empDesignation').value,
-    phone: document.getElementById('empPhone').value
-   };
+        fullName: fullName,
+        email: email,
+        role: 'employee',
+        department: department,
+        designation: designation,
+        phone: phone || ''
+    };
+
+    // Show loading overlay
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) overlay.classList.add('show');
+
     try {
         const result = await API.adminCreateUser(userData);
-        showToast(result.message || 'Employee created! Credentials sent to email.', 'success');
-        bootstrap.Modal.getInstance(document.getElementById('employeeModal')).hide();
+        showToast(result.message || '✅ Employee created! Credentials sent to email.', 'success');
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('employeeModal'));
+        if (modal) modal.hide();
         document.getElementById('employeeForm').reset();
-        await loadEmployeesTable();
-        await loadDashboardStats();
+        
+        // Refresh tables
+        await Promise.all([loadEmployeesTable(), loadDashboardStats()]);
+        
     } catch (error) {
-        showToast(error.message || 'Failed to create employee', 'error');
+        console.error('Add employee error:', error);
+        showToast(error.message || '❌ Failed to create employee', 'error');
+    } finally {
+        if (overlay) overlay.classList.remove('show');
     }
 }
 
@@ -541,19 +563,19 @@ function displayLeaveRequests() {
     tbody.innerHTML = '';
     
     if (leaveRequests.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center">No pending leave requests</td></tr>';
+        tbody.innerHTML = '<td><td colspan="7" class="text-center">No pending leave requests<\/td><\/tr>';
         return;
     }
     
     leaveRequests.forEach(leave => {
         const row = tbody.insertRow();
         row.innerHTML = `
-            <td class="align-middle">${leave.employee?.firstName || ''} ${leave.employee?.lastName || ''} </td>
-            <td class="align-middle">${leave.leaveType}</td>
-            <td class="align-middle">${formatDate(leave.startDate)}</td>
-            <td class="align-middle">${formatDate(leave.endDate)}</td>
-            <td class="align-middle text-center">${leave.daysCount}</td>
-            <td class="align-middle">${leave.reason}</td>
+            <td class="align-middle">${leave.employee?.firstName || ''} ${leave.employee?.lastName || ''} <\/td>
+            <td class="align-middle">${leave.leaveType}<\/td>
+            <td class="align-middle">${formatDate(leave.startDate)}<\/td>
+            <td class="align-middle">${formatDate(leave.endDate)}<\/td>
+            <td class="align-middle text-center">${leave.daysCount}<\/td>
+            <td class="align-middle">${leave.reason}<\/td>
             <td class="align-middle">
                 <button class="btn btn-sm btn-success me-1 approve-leave" data-id="${leave._id}">
                     <i class="fas fa-check"></i> Approve
@@ -561,7 +583,7 @@ function displayLeaveRequests() {
                 <button class="btn btn-sm btn-danger reject-leave" data-id="${leave._id}">
                     <i class="fas fa-times"></i> Reject
                 </button>
-            </td>
+            <\/td>
         `;
     });
     
@@ -727,15 +749,15 @@ checkOut = formatTime12Hour(record.checkOut);
     const row = tbody.insertRow();
 
     row.innerHTML = `
-        <td>${formatDate(currentDate)}</td>
-        <td>${checkIn}</td>
-        <td>${checkOut}</td>
-       <td>
+        <td>${formatDate(currentDate)}<\/td>
+        <td>${checkIn}<\/td>
+        <td>${checkOut}<\/td>
+        <td>
                 ${status === '-' 
                     ? '-' 
                     : `<span class="badge ${getStatusClass(status)}">${status}</span>`}
-        </td>
-        <td>${hoursDisplay}</td>
+        <\/td>
+        <td>${hoursDisplay}<\/td>
     `;
 }
     } catch (error) {
@@ -836,13 +858,13 @@ async function generateReport() {
                 const joiningDate = emp.joiningDate ? formatDate(emp.joiningDate) : '-';
                 html += `
                     <tr>
-                        <td class="align-middle">${emp.employeeId || '-'}</td>
-                        <td class="align-middle">${emp.firstName || ''} ${emp.lastName || ''}</td>
-                        <td class="align-middle">${emp.email}</td>
-                        <td class="align-middle">${emp.department || '-'}</td>
-                        <td class="align-middle">${emp.designation || '-'}</td>
-                        <td class="align-middle">${joiningDate}</td>
-                        <td class="align-middle"><span class="badge ${emp.isActive ? 'bg-success' : 'bg-danger'}">${emp.isActive ? 'Active' : 'Inactive'}</span></td>
+                        <td class="align-middle">${emp.employeeId || '-'}<\/td>
+                        <td class="align-middle">${emp.firstName || ''} ${emp.lastName || ''}<\/td>
+                        <td class="align-middle">${emp.email}<\/td>
+                        <td class="align-middle">${emp.department || '-'}<\/td>
+                        <td class="align-middle">${emp.designation || '-'}<\/td>
+                        <td class="align-middle">${joiningDate}<\/td>
+                        <td class="align-middle"><span class="badge ${emp.isActive ? 'bg-success' : 'bg-danger'}">${emp.isActive ? 'Active' : 'Inactive'}</span><\/td>
                     </tr>
                 `;
             });
@@ -854,7 +876,7 @@ async function generateReport() {
             html += '<thead class="table-dark"><tr><th>Employee</th><th>Leave Type</th><th>Start Date</th><th>End Date</th><th>Days</th><th>Reason</th><th>Status</th></tr></thead><tbody>';
             
             if (leaves.length === 0) {
-                html += '<tr><td colspan="7" class="text-center">No leave records found</td></tr>';
+                html += '<tr><td colspan="7" class="text-center">No leave records found<\/td><\/tr>';
             } else {
                 leaves.forEach(leave => {
                     const startDate = leave.startDate ? formatDate(leave.startDate) : '-';
@@ -863,13 +885,13 @@ async function generateReport() {
                     
                     html += `
                         <tr>
-                           <td class="align-middle">${leave.employee?.firstName || ''} ${leave.employee?.lastName || ''}</td>
-                            <td class="align-middle">${leave.leaveType}</td>
-                            <td class="align-middle">${startDate}</td>
-                            <td class="align-middle">${endDate}</td>
-                            <td class="align-middle text-center">${leave.daysCount || 0}</td>
-                            <td class="align-middle">${leave.reason || '-'}</td>
-                            <td class="align-middle"><span class="badge ${statusClass}">${leave.status}</span></td>
+                            <td class="align-middle">${leave.employee?.firstName || ''} ${leave.employee?.lastName || ''}<\/td>
+                            <td class="align-middle">${leave.leaveType}<\/td>
+                            <td class="align-middle">${startDate}<\/td>
+                            <td class="align-middle">${endDate}<\/td>
+                            <td class="align-middle text-center">${leave.daysCount || 0}<\/td>
+                            <td class="align-middle">${leave.reason || '-'}<\/td>
+                            <td class="align-middle"><span class="badge ${statusClass}">${leave.status}</span><\/td>
                         </tr>
                     `;
                 });
@@ -963,7 +985,7 @@ function displayHolidaysTable() {
     tbody.innerHTML = '';
     
     if (!holidays || holidays.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center">No holidays found. Click "Add Holiday" to create.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">No holidays found. Click "Add Holiday" to create.<\/td><\/tr>';
         return;
     }
     
@@ -978,11 +1000,11 @@ function displayHolidaysTable() {
         else typeClass = 'badge-restricted';
         
         row.innerHTML = `
-            <td class="align-middle">${formattedDate}</td>
-            <td class="align-middle">${holiday.name}</td>
-            <td class="align-middle"><span class="badge ${typeClass}">${holiday.type}</span></td>
-            <td class="align-middle text-center">${holiday.icon || '🎉'}</td>
-            <td class="align-middle"><span class="badge ${holiday.isActive ? 'badge-success' : 'badge-secondary'}">${holiday.isActive ? 'Active' : 'Inactive'}</span></td>
+            <td class="align-middle">${formattedDate}<\/td>
+            <td class="align-middle">${holiday.name}<\/td>
+            <td class="align-middle"><span class="badge ${typeClass}">${holiday.type}</span><\/td>
+            <td class="align-middle text-center">${holiday.icon || '🎉'}<\/td>
+            <td class="align-middle"><span class="badge ${holiday.isActive ? 'badge-success' : 'badge-secondary'}">${holiday.isActive ? 'Active' : 'Inactive'}</span><\/td>
             <td class="align-middle">
                 <button class="btn btn-sm btn-warning action-btn edit-holiday" data-id="${holiday._id}">
                     <i class="fas fa-edit"></i>
@@ -990,7 +1012,7 @@ function displayHolidaysTable() {
                 <button class="btn btn-sm btn-danger action-btn delete-holiday" data-id="${holiday._id}">
                     <i class="fas fa-trash"></i>
                 </button>
-            </td>
+            <\/td>
         `;
     });
     

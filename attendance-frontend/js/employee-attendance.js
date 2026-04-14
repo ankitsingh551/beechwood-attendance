@@ -1,4 +1,4 @@
-// js/employee-attendance.js - Employee Attendance Logic
+// js/employee-attendance.js - Employee Attendance Logic with Real-time Updates
 // Beechwood Solutions India
 
 let employeeAttendance = [];
@@ -17,6 +17,43 @@ document.addEventListener('DOMContentLoaded', async function() {
     await loadAttendanceData();
     setupLogout();
     setupEventListeners();
+    
+    // ========== REAL-TIME SOCKET ADDITIONS ==========
+    if (typeof socket !== 'undefined') {
+        socket.on('attendanceUpdated', async (data) => {
+            console.log('📢 Real-time attendance update:', data);
+            
+            if (data.employeeId !== currentUser._id) return;
+            
+            // Reload current month/year data
+            await loadAttendanceData();
+            
+            // Show notification
+            const date = new Date(data.date);
+            const formattedDate = date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+            showToast(`Attendance updated for ${formattedDate}: ${data.status}`, 'info');
+        });
+        
+        socket.on('leaveUpdated', async (data) => {
+            console.log('📢 Real-time leave update:', data);
+            
+            if (data.employeeId !== currentUser._id) return;
+            
+            // Reload attendance data as leaves affect attendance status
+            await loadAttendanceData();
+            
+            if (data.status === 'APPROVED') {
+                const startDate = new Date(data.startDate);
+                const endDate = new Date(data.endDate);
+                const formattedStart = startDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+                const formattedEnd = endDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+                showToast(`Leave approved from ${formattedStart} to ${formattedEnd}`, 'success');
+            } else if (data.status === 'REJECTED') {
+                showToast(`Leave request rejected`, 'info');
+            }
+        });
+    }
+    // ========== END REAL-TIME ADDITIONS ==========
 });
 
 async function checkAuth() {
@@ -194,45 +231,45 @@ function generateMonthlyCalendar(year, month) {
         };
         
         // ⭐ FIRST priority — if attendance exists, always show it (even for future)
-if (attendanceRecord) {
-    record.checkIn = attendanceRecord.checkIn || '-';
-    record.checkOut = attendanceRecord.checkOut || '-';
+        if (attendanceRecord) {
+            record.checkIn = attendanceRecord.checkIn || '-';
+            record.checkOut = attendanceRecord.checkOut || '-';
 
-    switch(attendanceRecord.status) {
-        case 'PRESENT':
-            record.status = 'Present';
-            break;
-        case 'LATE':
-            record.status = 'Late';
-            break;
-        case 'HALF_DAY':
-            record.status = 'Half Day';
-            break;
-        case 'ABSENT':
-            record.status = 'Absent';
-            break;
-        case 'LEAVE':
+            switch(attendanceRecord.status) {
+                case 'PRESENT':
+                    record.status = 'Present';
+                    break;
+                case 'LATE':
+                    record.status = 'Late';
+                    break;
+                case 'HALF_DAY':
+                    record.status = 'Half Day';
+                    break;
+                case 'ABSENT':
+                    record.status = 'Absent';
+                    break;
+                case 'LEAVE':
+                    record.status = 'Leave';
+                    break;
+                default:
+                    record.status = 'Present';
+            }
+
+            record.workingHours = attendanceRecord.workingHours || 0;
+        }
+        // ⭐ If no attendance, then decide by rules
+        else if (holidayDates.includes(dateStr)) {
+            record.status = 'Holiday';
+        }
+        else if (approvedLeaveDates.includes(dateStr)) {
             record.status = 'Leave';
-            break;
-        default:
-            record.status = 'Present';
-    }
-
-    record.workingHours = attendanceRecord.workingHours || 0;
-}
-            // ⭐ If no attendance, then decide by rules
-            else if (holidayDates.includes(dateStr)) {
-                record.status = 'Holiday';
-            }
-            else if (approvedLeaveDates.includes(dateStr)) {
-                record.status = 'Leave';
-            }
-            else if (isFuture) {
-                record.status = 'Future';
-            }
-            else {
-                record.status = 'Absent';
-            }
+        }
+        else if (isFuture) {
+            record.status = 'Future';
+        }
+        else {
+            record.status = 'Absent';
+        }
         
         allRecords.push(record);
     }

@@ -26,32 +26,37 @@ const BULK_CONFIG = {
     ALLOWED_STATUSES: ['PRESENT', 'LATE', 'HALF_DAY']
 };
 
-    document.addEventListener('DOMContentLoaded', async function() {
-     await checkAuth();
+document.addEventListener('DOMContentLoaded', async function() {
+    await checkAuth();
     socket.on('attendanceUpdated', (data) => {
-    console.log('📢 Real-time update:', data);
+        console.log('📢 Real-time update:', data);
 
-    if (data.employeeId !== currentUser._id) return;
+        if (data.employeeId !== currentUser._id) return;
 
-    // ✅ Convert date
-    const date = new Date(data.date);
-    const dateStr = formatDateToString(date);
+        const date = new Date(data.date);
+        const dateStr = formatDateToString(date);
 
-    // ✅ Update local state
-    if (!markedDates.includes(dateStr)) {
-        markedDates.push(dateStr);
-    }
+        // Update local state
+        if (!markedDates.includes(dateStr)) {
+            markedDates.push(dateStr);
+        }
 
-    attendanceDetails[dateStr] = {
-        status: data.status,
-        checkIn: null,
-        checkOut: null,
-        workingHours: 0
-    };
+        attendanceDetails[dateStr] = {
+            status: data.status,
+            checkIn: data.checkIn || null,
+            checkOut: data.checkOut || null,
+            workingHours: data.workingHours || 0
+        };
 
-    // ✅ Force UI update
-    updateCalendarColors();
-});
+        // SAFE: Just update colors, nothing else
+        updateCalendarColors();
+        
+        // If update is for today, refresh check-in/out UI
+        const today = formatDateToString(new Date());
+        if (dateStr === today) {
+            loadTodayCheckInStatus();
+        }
+    });
 
     // THEN load everything
     await loadDashboard();
@@ -64,6 +69,9 @@ const BULK_CONFIG = {
     setupEventListeners();
     initCalendar();
     displayFestivals();
+    
+    // CRITICAL: Load today's check-in status on page load
+    await loadTodayCheckInStatus();
 });
 
 async function checkAuth() {
@@ -76,6 +84,75 @@ async function checkAuth() {
     const userNameEl = document.getElementById('userName');
     if (userNameEl) {
         userNameEl.textContent = `${user.firstName} ${user.lastName}`;
+    }
+}
+
+// ============================================
+// PERSISTENT CHECK-IN/OUT STATUS
+// ============================================
+
+async function loadTodayCheckInStatus() {
+    try {
+        const today = formatDateToString(new Date());
+        const response = await API.getMyAttendance({
+            fromDate: today,
+            toDate: today
+        });
+        
+        const todayRecord = response.data?.[0];
+        const checkInBtn = document.getElementById('checkInBtn');
+        const checkOutBtn = document.getElementById('checkOutBtn');
+        const checkInTimeDisplay = document.getElementById('checkInTimeDisplay');
+        const checkOutTimeDisplay = document.getElementById('checkOutTimeDisplay');
+        const checkOutRow = document.getElementById('checkOutRow');
+        const workingHoursRow = document.getElementById('workingHoursRow');
+        const workingHoursDisplay = document.getElementById('workingHoursDisplay');
+        const statusBadgeContainer = document.getElementById('statusBadgeContainer');
+        
+        if (todayRecord && todayRecord.checkIn && !todayRecord.checkOut) {
+            // Checked in but NOT checked out
+            if (checkInBtn) checkInBtn.classList.add('d-none');
+            if (checkOutBtn) checkOutBtn.classList.remove('d-none');
+            if (checkInTimeDisplay) checkInTimeDisplay.textContent = todayRecord.checkIn;
+            if (checkOutRow) checkOutRow.style.display = 'none';
+            if (workingHoursRow) workingHoursRow.style.display = 'none';
+            if (statusBadgeContainer) {
+                statusBadgeContainer.innerHTML = '<span class="status-badge-compact status-checked-in"><i class="fas fa-clock me-1"></i> Checked In</span>';
+            }
+            return true;
+        } 
+        else if (todayRecord && todayRecord.checkIn && todayRecord.checkOut) {
+            // Checked out already
+            if (checkInBtn) checkInBtn.classList.add('d-none');
+            if (checkOutBtn) checkOutBtn.classList.add('d-none');
+            if (checkInTimeDisplay) checkInTimeDisplay.textContent = todayRecord.checkIn;
+            if (checkOutTimeDisplay) checkOutTimeDisplay.textContent = todayRecord.checkOut;
+            if (checkOutRow) checkOutRow.style.display = 'flex';
+            if (workingHoursRow) {
+                workingHoursRow.style.display = 'flex';
+                const hours = todayRecord.workingHours || 0;
+                workingHoursDisplay.textContent = `${hours.toFixed(2)} hrs`;
+            }
+            if (statusBadgeContainer) {
+                statusBadgeContainer.innerHTML = '<span class="status-badge-compact status-checked-out"><i class="fas fa-check-circle me-1"></i> Completed</span>';
+            }
+            return false;
+        }
+        else {
+            // Not checked in yet
+            if (checkInBtn) checkInBtn.classList.remove('d-none');
+            if (checkOutBtn) checkOutBtn.classList.add('d-none');
+            if (checkInTimeDisplay) checkInTimeDisplay.textContent = '--:--';
+            if (checkOutRow) checkOutRow.style.display = 'none';
+            if (workingHoursRow) workingHoursRow.style.display = 'none';
+            if (statusBadgeContainer) {
+                statusBadgeContainer.innerHTML = '<span class="status-badge-compact status-not-checked"><i class="fas fa-hourglass-half me-1"></i> Not Checked In</span>';
+            }
+            return false;
+        }
+    } catch (error) {
+        console.error('Error loading today\'s check-in status:', error);
+        return false;
     }
 }
 
@@ -219,7 +296,7 @@ function formatDateToString(date) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-// ✅ ADD HERE (global helper, not inside any loop)
+// ADD HERE (global helper, not inside any loop)
 function getDateRange(startDate, endDate) {
     const dates = [];
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
@@ -290,7 +367,7 @@ function initCalendar() {
         mode: "multiple",
         dateFormat: "Y-m-d",
 
-        // ❌ remove minDate & maxDate
+        // remove minDate & maxDate
 
         onChange: function(selectedDatesArray) {
        selectedDates = selectedDatesArray;
@@ -312,102 +389,87 @@ function initCalendar() {
         updateCalendarColors();
         markFestivalDates();
         },
+
+        // ADD THIS - ensures calendar updates when values change
+        onValueUpdate: function() {
+            updateCalendarColors();
+        }
          });
           }
 
         function updateCalendarColors() {
-            console.log("Marked Dates:", markedDates);
-        requestAnimationFrame(() => {
-            document.querySelectorAll('.flatpickr-day').forEach(day => {
-            const dateAttr = day.getAttribute('aria-label');
-            if (!dateAttr) return;
-
-            const parsedDate = new Date(day.dateObj); // 🔥 USE FLATPICKR INTERNAL DATE
-            const formattedDate = formatDateToString(parsedDate);
-            
-
-            // 🧹 SAFE RESET (do NOT touch className)
-                day.classList.remove(
-                    'holiday-date',
-                    'leave-date',
-                    'attendance-present',
-                    'attendance-absent',
-                    'attendance-marked',
-                    'festival-day',
-                );
-
-                day.removeAttribute('aria-disabled');
-                day.style.pointerEvents = '';
-
-            // 🎨 Only visual indicators — NEVER block selection
-
-            if (holidayDates.includes(formattedDate)) {
-                day.classList.add('holiday-date');
-            }
-
-            if (approvedLeaveDates.includes(formattedDate)) {
-               day.classList.add('leave-date');
-
-                // ❌ Disable click
-                day.classList.add('flatpickr-disabled');
-
-                // ❌ Disable pointer interaction
-                day.style.pointerEvents = 'none';
-
-                // ❌ Show blocked cursor
-                day.style.cursor = 'not-allowed';
-
-                // Accessibility
-                day.setAttribute('aria-disabled', 'true');
-            }
-
-            if (markedDates.includes(formattedDate)) {
-                const details = attendanceDetails[formattedDate];
-                const statusClass = getAttendanceColorClass(details?.status);
-                day.classList.add(statusClass);
-
-                // ❌ Disable click (same as leave)
-                day.classList.add('flatpickr-disabled');
-
-                // ❌ Disable pointer interaction
-                day.style.pointerEvents = 'none';
-
-                // ❌ Show blocked cursor
-                day.style.cursor = 'not-allowed';
-
-                // Accessibility
-                day.setAttribute('aria-disabled', 'true');
-            }
-   // ✅ ABSENT LOGIC (your code is correct)
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            const currentMonth = today.getMonth();
-            const currentYear = today.getFullYear();
-
-            const cellMonth = parsedDate.getMonth();
-            const cellYear = parsedDate.getFullYear();
-
-            const isPastMonth =
-                cellYear < currentYear ||
-                (cellYear === currentYear && cellMonth < currentMonth);
-
-            if (
-                isPastMonth &&
-                !markedDates.includes(formattedDate) &&
-                !approvedLeaveDates.includes(formattedDate) &&
-                !holidayDates.includes(formattedDate)
-            ) {
-                day.classList.add('attendance-absent');
-                day.classList.add('flatpickr-disabled');
-                day.style.pointerEvents = 'none';
-                day.style.cursor = 'not-allowed';
-                day.setAttribute('aria-disabled', 'true');
-            }
-
-        }); // ✅ CLOSE LOOP
-    }, 100); // ✅ CLOSE TIMEOUT
-} 
+    if (!calendar || !calendar.calendarContainer) return;
+    
+    // Safe check - only proceed if we have days
+    const days = document.querySelectorAll('.flatpickr-day');
+    if (days.length === 0) return;
+    
+    days.forEach(day => {
+        // SAFE: Use flatpickr's internal dateObj instead of aria-label
+        const dateObj = day.dateObj;
+        if (!dateObj) return;
+        
+        const formattedDate = formatDateToString(dateObj);
+        
+        // SAFE: Only remove specific classes we add, not all classes
+        day.classList.remove(
+            'holiday-date',
+            'leave-date',
+            'attendance-present',
+            'attendance-absent',
+            'attendance-marked',
+            'festival-day'
+        );
+        
+        // SAFE: Reset styles only if we previously set them
+        if (day.style.pointerEvents === 'none') {
+            day.style.pointerEvents = '';
+            day.style.cursor = '';
+            day.removeAttribute('aria-disabled');
+            day.classList.remove('flatpickr-disabled');
+        }
+        
+        // Apply visual indicators (same logic as before)
+        if (holidayDates.includes(formattedDate)) {
+            day.classList.add('holiday-date');
+        }
+        
+        if (approvedLeaveDates.includes(formattedDate)) {
+            day.classList.add('leave-date');
+            day.classList.add('flatpickr-disabled');
+            day.style.pointerEvents = 'none';
+            day.style.cursor = 'not-allowed';
+            day.setAttribute('aria-disabled', 'true');
+        }
+        
+        if (markedDates.includes(formattedDate)) {
+            const details = attendanceDetails[formattedDate];
+            const statusClass = getAttendanceColorClass(details?.status);
+            day.classList.add(statusClass);
+            day.classList.add('flatpickr-disabled');
+            day.style.pointerEvents = 'none';
+            day.style.cursor = 'not-allowed';
+            day.setAttribute('aria-disabled', 'true');
+        }
+        
+        // Auto-absent for past dates (preserve existing logic)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const compareDate = new Date(dateObj);
+        compareDate.setHours(0, 0, 0, 0);
+        
+        if (compareDate < today && 
+            !markedDates.includes(formattedDate) && 
+            !approvedLeaveDates.includes(formattedDate) && 
+            !holidayDates.includes(formattedDate)) {
+            day.classList.add('attendance-absent');
+            day.classList.add('flatpickr-disabled');
+            day.style.pointerEvents = 'none';
+            day.style.cursor = 'not-allowed';
+            day.setAttribute('aria-disabled', 'true');
+        }
+    });
+}
 
 function markFestivalDates() {
     if (!festivalsList || festivalsList.length === 0) return;
@@ -513,7 +575,7 @@ async function submitBulkAttendance() {
             continue;
         }
         
-        // ✅ NO future date check - all dates in current month are allowed
+        // NO future date check - all dates in current month are allowed
         
         datesToMark.push(date);
     }
@@ -529,7 +591,7 @@ async function submitBulkAttendance() {
     
     const status = document.getElementById('bulkStatus').value;
 
-    // ✅ UNMARK MODE
+    // UNMARK MODE
 if (status === 'UNMARK') {
 
     showToast(`🗑️ Unmarking attendance for ${datesToMark.length} dates...`, 'info');
@@ -556,7 +618,7 @@ if (status === 'UNMARK') {
     await loadMarkedAttendance();
     updateCalendarColors();
     showToast('✅ Selected dates unmarked successfully!', 'success');
-    return;   // ⭐ VERY IMPORTANT — stop normal marking flow
+    return;   // VERY IMPORTANT — stop normal marking flow
 }
     
     showToast(`📝 Marking attendance for ${datesToMark.length} dates...`, 'info');
@@ -759,25 +821,33 @@ function confirmEmployeeLocation() {
         return;
     }
     
-    const checkInTime = new Date().toLocaleTimeString();
+    const checkInTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
     const today = formatDateToString(new Date());
-    
-    const checkInTimeEl = document.getElementById('checkInTime');
-    const checkInBtn = document.getElementById('checkInBtn');
-    const checkOutBtn = document.getElementById('checkOutBtn');
-    
-    if (checkInTimeEl) checkInTimeEl.textContent = checkInTime;
-    if (checkInBtn) checkInBtn.classList.add('d-none');
-    if (checkOutBtn) checkOutBtn.classList.remove('d-none');
     
     API.markCheckIn({
         date: today,
         checkIn: checkInTime,
         location: employeeLocation,
         remarks: `Checked in at ${checkInTime}`
-    }).then(() => {
+    }).then(async () => {
         showToast(`✅ Checked in successfully at ${checkInTime}`, 'success');
         bootstrap.Modal.getInstance(document.getElementById('locationModal')).hide();
+        
+        // Update UI to show check-out button with check-in time
+        await loadTodayCheckInStatus();
+        
+        // Also update dashboard
+        await loadDashboard();
+        
+        // Emit socket event for real-time update
+        if (typeof socket !== 'undefined') {
+            socket.emit('attendanceUpdate', {
+                employeeId: currentUser._id,
+                date: today,
+                status: 'PRESENT',
+                checkIn: checkInTime
+            });
+        }
     }).catch(error => {
         showToast(error.message || 'Check-in failed', 'error');
     });
@@ -785,7 +855,7 @@ function confirmEmployeeLocation() {
 
 async function employeeCheckOut() {
     const today = formatDateToString(new Date());
-    const checkOutTime = new Date().toLocaleTimeString();
+    const checkOutTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
     
     try {
         const result = await API.markCheckOut({
@@ -805,7 +875,20 @@ async function employeeCheckOut() {
         }
         
         await loadDashboard();
+        await loadTodayCheckInStatus();
+        
         showToast(`✅ Checked out successfully! Worked for ${hoursDisplay}`, 'success');
+        
+        // Emit socket event for real-time update
+        if (typeof socket !== 'undefined') {
+            socket.emit('attendanceUpdate', {
+                employeeId: currentUser._id,
+                date: today,
+                status: 'PRESENT',
+                checkOut: checkOutTime,
+                workingHours: workingHours
+            });
+        }
         
     } catch (error) {
         showToast(error.message || 'Check-out failed', 'error');
@@ -884,9 +967,16 @@ function updateDateTime() {
 
 let activeToast = null;
 
+// this function anywhere - it's just a helper
+function forceCalendarRefresh() {
+    if (calendar && typeof updateCalendarColors === 'function') {
+        updateCalendarColors();
+    }
+}
+
 function showToast(message, type) {
 
-    // ❌ Remove existing toast before showing new one
+    // Remove existing toast before showing new one
     if (activeToast) {
         activeToast.remove();
         activeToast = null;

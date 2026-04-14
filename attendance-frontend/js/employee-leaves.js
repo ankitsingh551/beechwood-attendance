@@ -1,7 +1,8 @@
-// js/employee-leaves.js - Employee Leaves Logic with Attendance Conflict Check
+// js/employee-leaves.js - Employee Leaves Logic with Attendance Conflict Check and Real-time Updates
 // Beechwood Solutions India
 
 let leaves = [];
+let currentUser = null;
 
 document.addEventListener('DOMContentLoaded', async function() {
     await checkAuth();
@@ -11,13 +12,49 @@ document.addEventListener('DOMContentLoaded', async function() {
     setupLogout();
     setupEventListeners();
     setupLeaveEventListeners();
+    
+    // ========== REAL-TIME SOCKET ADDITIONS ==========
+    if (typeof socket !== 'undefined') {
+        socket.on('leaveUpdated', async (data) => {
+            console.log('📢 Real-time leave update:', data);
+            
+            if (data.employeeId !== currentUser?._id) return;
+            
+            // Reload leaves data
+            await loadLeaves();
+            
+            // Show appropriate notification
+            if (data.status === 'APPROVED') {
+                showToast(`✅ Leave approved: ${data.leaveType} from ${formatDate(data.startDate)} to ${formatDate(data.endDate)}`, 'success');
+            } else if (data.status === 'REJECTED') {
+                showToast(`❌ Leave rejected: ${data.leaveType}`, 'error');
+            } else if (data.status === 'CANCELLED') {
+                showToast(`📝 Leave request cancelled`, 'info');
+            }
+        });
+        
+        socket.on('attendanceUpdated', async (data) => {
+            console.log('📢 Real-time attendance update:', data);
+            
+            if (data.employeeId !== currentUser?._id) return;
+            
+            // Refresh leave data as it might affect conflict detection
+            if (document.getElementById('leaveModal')?.classList.contains('show')) {
+                // Silently refresh if modal is open
+                await loadLeaves();
+            }
+        });
+    }
+    // ========== END REAL-TIME ADDITIONS ==========
 });
 
 async function checkAuth() {
     const user = API.getCurrentUser();
     if (!user) {
         window.location.href = 'employee-login.html';
+        return;
     }
+    currentUser = user;
 }
 
 function populateLeaveMonthYearDropdowns() {
@@ -154,7 +191,7 @@ function displayLeaveTable() {
     tbody.innerHTML = '';
     
     if (!leaves || leaves.length === 0) {
-        tbody.innerHTML = '.<td colspan="7" class="text-center py-4">No leave records found for selected month</td.';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4">No leave records found for selected month</td></tr>';
         return;
     }
     
@@ -190,7 +227,7 @@ function displayLeaveTable() {
         const pastIndicator = isPastLeave ? ' <span class="badge bg-secondary">Past</span>' : '';
         
         row.innerHTML = `
-            <td class="align-middle text-center">${leave.leaveType || '-'} </td>
+            <td class="align-middle text-center">${leave.leaveType || '-'}</td>
             <td class="align-middle text-center">${formatDate(leave.startDate)}</td>
             <td class="align-middle text-center">${formatDate(leave.endDate)}</td>
             <td class="align-middle text-center">${leave.daysCount || 0}</td>
@@ -201,7 +238,7 @@ function displayLeaveTable() {
                     `<button class="btn btn-sm btn-danger cancel-leave" data-id="${leave._id}">Cancel</button>` : 
                     '-'
                 }
-             </td>
+              </td>
         `;
     });
     

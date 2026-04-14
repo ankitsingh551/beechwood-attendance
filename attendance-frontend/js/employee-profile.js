@@ -179,4 +179,37 @@ function showToast(message, type) {
     setTimeout(() => toast.remove(), 3000);
 }
 
+// Attach event listener after page loads (CSP compliant)
+document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('updatePasswordBtn');
+    if (btn) {
+        btn.addEventListener('click', changePassword);
+    }
+});
+
+async function changePassword() {
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        alert("Please fill all fields");
+        return;
+    }
+
+    if (newPassword !== confirmPassword) {
+        alert("New passwords do not match");
+        return;
+    }
+
+    try {
+        await API.changePassword(currentPassword, newPassword);
+
+        alert("Password changed successfully!");
+        location.reload();
+    } catch (err) {
+        alert(err.message || "Failed to change password");
+    }
+}
+
 window.editProfile = editProfile;
