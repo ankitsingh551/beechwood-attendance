@@ -2,7 +2,8 @@
 
 const Leave = require('../models/Leave');
 const User = require('../models/User');
-const Attendance = require('../models/Attendance'); // ✅ Add this at the top
+const Attendance = require('../models/Attendance'); 
+const Settings = require('../models/Settings');
 
 // ============================================
 // 📝 REQUEST LEAVE (Employee)
@@ -57,9 +58,9 @@ const requestLeave = async (req, res) => {
                 }
             });
             
-            const user = await User.findById(employeeId);
+            const settings = await Settings.findOne();
 
-           const totalLeaves = user.totalLeaves ?? 0;
+            const totalLeaves = settings?.totalAnnualLeaves || 12;
 
             const usedLeaves = approvedLeaves.reduce((sum, leave) => sum + leave.daysCount, 0);
             const remainingLeaves = totalLeaves - usedLeaves;
@@ -336,8 +337,9 @@ const getLeaveBalance = async (req, res) => {
 
         const currentYear = new Date().getFullYear();
 
-        const user = await User.findById(employeeId);   // ✅ ADD THIS
-       const totalLeaves = user.totalLeaves ?? 0;    
+        const settings = await Settings.findOne();
+
+        const totalLeaves = settings?.totalAnnualLeaves || 12;     
 
         const leaves = await Leave.find({
             employee: employeeId,

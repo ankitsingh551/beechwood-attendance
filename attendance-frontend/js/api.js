@@ -39,36 +39,78 @@ function setCurrentUser(user) {
 // API CALL FUNCTION
 // ============================================
 
+// ============================================
+// SAFE API CALL FUNCTION (PRODUCTION READY)
+// ============================================
+
 async function apiCall(endpoint, options = {}) {
+
     const headers = {
         'Content-Type': 'application/json',
         ...options.headers
     };
-    
+
     if (authToken) {
         headers['Authorization'] = `Bearer ${authToken}`;
     }
-    
+
     try {
+
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             ...options,
             headers
         });
-        
-        const data = await response.json();
-        
+
+        let data;
+
+        // safely parse response
+        const contentType = response.headers.get('content-type');
+
+        if (contentType && contentType.includes('application/json')) {
+
+            data = await response.json();
+
+        } else {
+
+            const text = await response.text();
+
+            data = {
+                status: 'error',
+                message: text || 'Unexpected server response'
+            };
+        }
+
+        // Handle errors
         if (!response.ok) {
-            if (response.status === 401) {
+
+            // logout ONLY for auth token issues
+            if (
+                response.status === 401 &&
+                authToken &&
+                endpoint !== '/auth/login'
+            ) {
                 clearAuthToken();
                 window.location.href = '/';
             }
-            throw new Error(data.message || 'API request failed');
+
+            throw new Error(
+                data.message ||
+                `Request failed with status ${response.status}`
+            );
         }
-        
+
         return data;
+
     } catch (error) {
+
         console.error('API Error:', error);
-        throw error;
+
+        return {
+            status: 'error',
+            message:
+                error.message ||
+                'Network error. Please try again.'
+        };
     }
 }
 

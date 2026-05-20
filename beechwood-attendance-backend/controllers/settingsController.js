@@ -1,48 +1,69 @@
-const User = require('../models/User');
+const Settings = require('../models/Settings');
+
+// ============================================
+// SAVE SETTINGS
+// ============================================
 
 const saveSettings = async (req, res) => {
-   try {
-      const { companyName, annualLeaveQuota } = req.body;
+    try {
 
-      console.log("Received settings:", annualLeaveQuota);
+        let settings = await Settings.findOne();
 
-      // 🔥 THIS IS THE MAIN FIX
-      await User.updateMany(
-         { role: 'employee' },
-         { $set: { totalLeaves: parseInt(annualLeaveQuota) } }
-      );
+        if (!settings) {
+            settings = new Settings();
+        }
 
-      res.json({
-         status: 'success',
-         message: 'Settings saved & employees updated'
-      });
+        settings.totalAnnualLeaves = req.body.totalAnnualLeaves || 12;
 
-   } catch (error) {
-      console.error(error);
-      res.status(500).json({
-         status: 'error',
-         message: error.message
-      });
-   }
+        await settings.save();
+
+        res.json({
+            status: 'success',
+            message: 'Settings saved successfully',
+            data: settings
+        });
+
+    } catch (error) {
+        console.error('Save settings error:', error);
+
+        res.status(500).json({
+            status: 'error',
+            message: error.message
+        });
+    }
 };
+
+// ============================================
+// GET SETTINGS
+// ============================================
+
 const getSettings = async (req, res) => {
-   try {
-      // Get any one employee (all have same value)
-      const user = await User.findOne({ role: 'employee' });
+    try {
 
-      res.json({
-         status: 'success',
-         data: {
-            annualLeaveQuota: user?.totalLeaves ?? 0
-         }
-      });
+        let settings = await Settings.findOne();
 
-   } catch (error) {
-      res.status(500).json({
-         status: 'error',
-         message: error.message
-      });
-   }
+        if (!settings) {
+            settings = await Settings.create({
+                totalAnnualLeaves: 12
+            });
+        }
+
+        res.json({
+            status: 'success',
+            data: settings
+        });
+
+    } catch (error) {
+        console.error('Get settings error:', error);
+
+        res.status(500).json({
+            status: 'error',
+            message: error.message
+        });
+    }
 };
 
-module.exports = { saveSettings, getSettings };
+module.exports = {
+    saveSettings,
+    getSettings
+};

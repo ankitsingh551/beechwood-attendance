@@ -75,6 +75,15 @@ function parseTimeToMinutes(timeStr) {
 
 // ✅ Mongoose v7 compatible pre-save hook (NO next, NO callback)
 attendanceSchema.pre('save', function () {
+
+    // 🔥 FIX FOR ABSENT / LEAVE
+    if (['ABSENT', 'LEAVE'].includes(this.status)) {
+        this.checkIn = null;
+        this.checkOut = null;
+        this.workingHours = 0;
+        return;
+    }
+
     if (this.checkIn && this.checkOut) {
         const checkInMinutes = parseTimeToMinutes(this.checkIn);
         const checkOutMinutes = parseTimeToMinutes(this.checkOut);
@@ -89,5 +98,6 @@ attendanceSchema.pre('save', function () {
         }
     }
 });
+
 
 module.exports = mongoose.model('Attendance', attendanceSchema);

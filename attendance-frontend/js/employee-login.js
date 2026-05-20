@@ -101,3 +101,74 @@ if (!document.querySelector('#toast-animation-style')) {
     `;
     document.head.appendChild(style);
 }
+
+// ============================================
+// FORGOT PASSWORD
+// ============================================
+
+const forgotPasswordLink =
+    document.getElementById('forgotPasswordLink');
+
+if (forgotPasswordLink) {
+
+    forgotPasswordLink.addEventListener('click', function(e) {
+
+        e.preventDefault();
+
+        const modal = new bootstrap.Modal(
+            document.getElementById('forgotPasswordModal')
+        );
+
+        modal.show();
+    });
+}
+
+const sendResetBtn =
+    document.getElementById('sendResetBtn');
+
+if (sendResetBtn) {
+
+    sendResetBtn.addEventListener('click', async () => {
+
+        const email =
+            document.getElementById('forgotEmail').value.trim();
+
+        if (!email) {
+            showToast('Please enter email', 'error');
+            return;
+        }
+
+        try {
+
+            sendResetBtn.disabled = true;
+
+            sendResetBtn.innerHTML =
+                '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+            const response =
+                await API.forgotPassword(email);
+
+            showToast(response.message, 'success');
+
+            bootstrap.Modal
+                .getInstance(
+                    document.getElementById('forgotPasswordModal')
+                )
+                .hide();
+
+        } catch (error) {
+
+            showToast(
+                error.message || 'Failed to send reset email',
+                'error'
+            );
+
+        } finally {
+
+            sendResetBtn.disabled = false;
+
+            sendResetBtn.innerHTML =
+                'Send Reset Link';
+        }
+    });
+}

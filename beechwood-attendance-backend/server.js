@@ -25,6 +25,8 @@ const leaveRoutes = require('./routes/leaveRoutes');
 const employeeRoutes = require('./routes/employeeRoutes');
 const holidayRoutes = require('./routes/holidayRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
+const payrollRoutes = require('./routes/payrollRoutes');
+
 
 // Import error handler
 const { errorHandler } = require('./middleware/errorMiddleware');
@@ -79,9 +81,8 @@ if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
 }
 
-// Body parsing middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // ============================================
 // ADDED: FORCE CORRECT MIME TYPES FOR STATIC FILES
@@ -129,40 +130,6 @@ app.get('/', (req, res) => {
 // ============================================
 // ADDED: DEBUG ENDPOINT TO FIND FRONTEND FILES ON RENDER
 // ============================================
-app.get('/debug-files', (req, res) => {
-    const searchPaths = [
-        '/opt/render/project/src',
-        '/opt/render/project/src/beechwood-attendance-backend',
-        process.cwd(),
-        __dirname,
-        path.join(__dirname, '..'),
-        path.join(process.cwd(), '..')
-    ];
-    
-    const results = {};
-    
-    searchPaths.forEach(searchPath => {
-        try {
-            if (fs.existsSync(searchPath)) {
-                const files = fs.readdirSync(searchPath);
-                results[searchPath] = {
-                    exists: true,
-                    hasAttendanceFrontend: files.includes('attendance-frontend'),
-                    hasPublic: files.includes('public'),
-                    hasCss: files.includes('css'),
-                    hasLibs: files.includes('libs'),
-                    first10Files: files.slice(0, 10)
-                };
-            } else {
-                results[searchPath] = { exists: false };
-            }
-        } catch(err) {
-            results[searchPath] = { error: err.message };
-        }
-    });
-    
-    res.json(results);
-});
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -174,14 +141,44 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 5,
-    message: "Too many attempts, try later"
+// ============================================
+// PRODUCTION-GRADE AUTH RATE LIMITER
+// ============================================
+
+const authLimiter = rateLimit({
+
+    // 10 minutes window
+    windowMs: 10 * 60 * 1000,
+
+    // enterprise-safe limit
+    // supports large employee base globally
+    max: 5000,
+
+    // do NOT count successful requests
+    skipSuccessfulRequests: true,
+
+    // better headers
+    standardHeaders: true,
+    legacyHeaders: false,
+
+    // trust Render / proxies properly
+    validate: {
+    trustProxy: true
+},
+
+    // JSON response only
+    handler: (req, res) => {
+        return res.status(429).json({
+            status: 'error',
+            message:
+                'Too many requests. Please wait a moment and try again.'
+        });
+    }
 });
 
-app.use('/api/auth/login', loginLimiter);
-app.use('/api/auth/forgot-password', loginLimiter);
+// Apply only on sensitive routes
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -191,6 +188,7 @@ app.use('/api/leaves', leaveRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/holidays', holidayRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/payroll', payrollRoutes);
 
 // ============================================
 // 404 HANDLER - FIXED FOR CSS/JS FILES

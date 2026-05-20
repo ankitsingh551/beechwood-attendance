@@ -65,8 +65,8 @@ const loginUser = async (req, res, next) => {
         await user.save();
 
         res.json({
-    status: 'success',
-    data: {
+        status: 'success',
+        data: {
         _id: user._id,
         firstName: user.firstName,
         lastName: user.lastName,
@@ -92,7 +92,9 @@ const loginUser = async (req, res, next) => {
 // ============================================
 const adminCreateUser = async (req, res, next) => {
     try {
-        const { fullName, email, phone, department, designation, role } = req.body;
+        const { fullName, email, phone, department, designation, role, currentSalary,
+            tdsPercentage
+        } = req.body;
 
         if (!fullName || !email) {
             return res.status(400).json({
@@ -115,13 +117,15 @@ const adminCreateUser = async (req, res, next) => {
             });
         }
 
-        // Generate random password
-        const plainPassword = generateRandomPassword();
-
-        // Set default department and designation based on role
+         // Set default department and designation based on role
         const userRole = role || 'employee';
         const defaultDepartment = userRole === 'admin' ? 'ADMIN' : 'IT';
         const defaultDesignation = userRole === 'admin' ? 'System Administrator' : 'Software Engineer';
+
+            // Generate random password
+        const plainPassword = userRole === 'admin'
+        ? (req.body.password || generateRandomPassword())
+        : generateRandomPassword();
 
         // Create user (UNCHANGED structure)
         const user = await User.create({
@@ -134,27 +138,39 @@ const adminCreateUser = async (req, res, next) => {
             designation: designation || defaultDesignation,
             role: userRole,
             isActive: true,
-            createdBy: req.user._id
-        });
+            createdBy: req.user._id,
 
-        // Send welcome email with credentials
-        try {
-            await sendWelcomeEmail(user, plainPassword);
-        } catch (emailError) {
-            console.error('Email sending failed:', emailError);
-        }
+            // ================= PAYROLL =================
+
+            currentSalary:
+                Number(currentSalary) || 0,
+
+            tdsPercentage:
+                Number(tdsPercentage) || 10
+
+        });
 
         res.status(201).json({
             status: 'success',
             message: `${userRole === 'admin' ? 'Admin' : 'Employee'} created successfully! Credentials sent to ${email}`,
             data: {
                 _id: user._id,
-                 fullName: `${user.firstName} ${user.lastName}`,
+                fullName: `${user.firstName} ${user.lastName}`,
                 email: user.email,
                 employeeId: user.employeeId,
                 role: user.role
             }
         });
+
+        // Send email in background (NON-BLOCKING)
+        sendWelcomeEmail(user, plainPassword)
+            .then(() => {
+                console.log('✅ Welcome email sent');
+            })
+            .catch((emailError) => {
+                console.error('Email sending failed:', emailError);
+            });
+            
 
     } catch (error) {
         console.error('Admin create user error:', error);
@@ -170,12 +186,12 @@ const getProfile = async (req, res, next) => {
         const user = await User.findById(req.user._id);
         
         res.json({
-    status: 'success',
-    data: {
+        status: 'success',
+        data: {
         ...user._doc,
         fullName: `${user.firstName} ${user.lastName}`
-    }
-});
+        }
+    });
         
     } catch (error) {
         console.error('Profile error:', error);

@@ -98,6 +98,38 @@ document.addEventListener('DOMContentLoaded', async function() {
             adminLogout();
         });
     }
+
+    // ============================================
+// 🔥 REAL-TIME SOCKET LISTENER (ADMIN FIX)
+// ============================================
+
+if (typeof socket !== 'undefined') {
+
+    let dashboardRefreshTimeout;
+
+    socket.on('attendanceUpdated', async (data) => {
+
+        // Ignore bulk attendance spam
+        if (data.isBulk) return;
+
+        console.log('📢 Admin real-time update:', data);
+
+        const currentEmployee =
+            document.getElementById('attendanceEmployee')?.value;
+
+        // Reload only selected employee attendance
+        if (currentEmployee === data.employeeId) {
+            await loadEmployeeAttendance();
+        }
+
+        // Prevent repeated dashboard reload storms
+        clearTimeout(dashboardRefreshTimeout);
+
+        dashboardRefreshTimeout = setTimeout(() => {
+            loadDashboardStats();
+        }, 1000);
+    });
+}
     
     // Show dashboard by default
     window.showSection('dashboard');
@@ -237,7 +269,36 @@ function setupEventListeners() {
             }
         });
     });
-}
+
+            // ============================================
+        // ✅ FIX: Handle status change (VERY IMPORTANT)
+        // ============================================
+
+        const statusSelect = document.getElementById('markStatus');
+        const checkInInput = document.getElementById('markCheckIn');
+        const checkOutInput = document.getElementById('markCheckOut');
+
+        if (statusSelect) {
+            statusSelect.addEventListener('change', function () {
+                const status = this.value;
+
+                if (status === 'ABSENT' || status === 'LEAVE') {
+                    // 🔥 CLEAR values
+                    checkInInput.value = '';
+                    checkOutInput.value = '';
+
+                    // 🔥 DISABLE inputs
+                    checkInInput.disabled = true;
+                    checkOutInput.disabled = true;
+                } else {
+                    // 🔥 ENABLE inputs
+                    checkInInput.disabled = false;
+                    checkOutInput.disabled = false;
+                }
+            });
+        }
+
+    }
 
 // ============================================
 // AUTHENTICATION
@@ -297,42 +358,69 @@ async function loadDashboardStats() {
         let presentToday = 0;
         let onLeaveToday = 0;
         
-        // Check each employee's attendance for today
-        for (const emp of allEmployees) {
+        await Promise.all(
+
+        allEmployees.map(async (emp) => {
+
             try {
-                const attendanceData = await API.getEmployeeAttendance(emp._id, today.getMonth() + 1, today.getFullYear());
+
+                const attendanceData =
+                    await API.getEmployeeAttendance(
+                        emp._id,
+                        today.getMonth() + 1,
+                        today.getFullYear()
+                    );
+
                 const attendance = attendanceData?.data || [];
-                
-                // Check if employee has attendance today
+
                 const todayAttendance = attendance.find(record => {
-                    const recordDate = new Date(record.date).toISOString().split('T')[0];
+
+                    const recordDate = new Date(record.date)
+                        .toISOString()
+                        .split('T')[0];
+
                     return recordDate === todayStr;
                 });
-                
-                if (todayAttendance && (todayAttendance.status === 'PRESENT' || todayAttendance.status === 'LATE')) {
+
+                if (
+                    todayAttendance &&
+                    (
+                        todayAttendance.status === 'PRESENT' ||
+                        todayAttendance.status === 'LATE'
+                    )
+                ) {
                     presentToday++;
                 }
-                
-                // Check if employee has approved leave today
-                const approvedLeaves = leavesData.data?.filter(l => 
-                    l.status === 'APPROVED' && 
+
+                const approvedLeaves = leavesData.data?.filter(l =>
+                    l.status === 'APPROVED' &&
                     l.employee?._id === emp._id
                 ) || [];
-                
+
                 const isOnLeave = approvedLeaves.some(leave => {
+
                     const startDate = new Date(leave.startDate);
                     const endDate = new Date(leave.endDate);
-                    return today >= startDate && today <= endDate;
+
+                    return today >= startDate &&
+                        today <= endDate;
                 });
-                
+
                 if (isOnLeave) {
                     onLeaveToday++;
                 }
-                
+
             } catch (err) {
-                console.error(`Error fetching attendance for ${emp._id}:`, err);
+
+                console.error(
+                    `Error fetching attendance for ${emp._id}:`,
+                    err
+                );
             }
-        }
+
+        })
+
+    );
         
         // Update DOM elements
         const totalEl = document.getElementById('totalEmployees');
@@ -450,6 +538,8 @@ async function editEmployee(id) {
         document.getElementById('empDepartment').value = emp.department;
         document.getElementById('empDesignation').value = emp.designation;
         document.getElementById('empPhone').value = emp.phone || '';
+        document.getElementById('grossSalary').value = emp.currentSalary || 0;
+        document.getElementById('tdsPercentage').value = emp.tdsPercentage || 10;
         new bootstrap.Modal(document.getElementById('employeeModal')).show();
     }
 }
@@ -483,7 +573,17 @@ async function addEmployee() {
         role: 'employee',
         department: department,
         designation: designation,
-        phone: phone || ''
+        phone: phone || '',
+
+         // ================= PAYROLL FIELDS =================
+
+     currentSalary: parseFloat(
+        document.getElementById('grossSalary').value
+    ) || 0,
+
+    tdsPercentage: parseFloat(
+        document.getElementById('tdsPercentage').value
+    ) || 10
     };
 
     // Show loading overlay
@@ -498,8 +598,11 @@ async function addEmployee() {
         if (modal) modal.hide();
         document.getElementById('employeeForm').reset();
         
-        // Refresh tables
-        await Promise.all([loadEmployeesTable(), loadDashboardStats()]);
+        // Fast refresh employee table first
+        await loadEmployeesTable();
+
+        // Dashboard refresh in background
+        loadDashboardStats();
         
     } catch (error) {
         console.error('Add employee error:', error);
@@ -516,7 +619,14 @@ async function updateEmployee(id) {
         fullName: fullName,
         department: document.getElementById('empDepartment').value,
         designation: document.getElementById('empDesignation').value,
-        phone: document.getElementById('empPhone').value
+        phone: document.getElementById('empPhone').value,
+        currentSalary: parseFloat(
+        document.getElementById('grossSalary').value
+    ) || 0,
+
+    tdsPercentage: parseFloat(
+        document.getElementById('tdsPercentage').value
+    ) || 10
     };
 
     try {
@@ -695,7 +805,8 @@ async function loadEmployeeAttendance() {
         
         const attendanceMap = {};
         attendance.forEach(record => {
-        const d = new Date(record.date);
+       const d = new Date(record.date);
+       d.setHours(0,0,0,0);
         const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         
         attendanceMap[dateKey] = record; // ✅ THIS WAS MISSING
@@ -706,6 +817,7 @@ async function loadEmployeeAttendance() {
     const today = new Date(new Date().toLocaleDateString());
     for (let day = 1; day <= daysInMonth; day++) {
     const currentDate = new Date(year, month - 1, day);
+    currentDate.setHours(0,0,0,0);
     const dateKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
 
     const record = attendanceMap[dateKey];
@@ -768,70 +880,121 @@ checkOut = formatTime12Hour(record.checkOut);
 
 window.markAttendanceModal = function() {
     const today = new Date().toISOString().split('T')[0];
+
     document.getElementById('markDate').value = today;
+
+    // Reset fields
+    const statusEl = document.getElementById('markStatus');
+    const checkInEl = document.getElementById('markCheckIn');
+    const checkOutEl = document.getElementById('markCheckOut');
+
+    statusEl.value = '';
+    checkInEl.value = '';
+    checkOutEl.value = '';
+
+    checkInEl.disabled = false;
+    checkOutEl.disabled = false;
+
+    // 🔥 IMPORTANT: trigger change manually
+    statusEl.dispatchEvent(new Event('change'));
+
     new bootstrap.Modal(document.getElementById('attendanceModal')).show();
 };
 
 async function saveAttendance() {
-
     function convertTo12Hour(time24) {
         if (!time24) return null;
-
+        
+        // If already in 12-hour format with AM/PM, return as is
+        if (time24.includes('AM') || time24.includes('PM')) {
+            return time24;
+        }
+        
         let [hours, minutes] = time24.split(':');
         hours = parseInt(hours);
-
+        
         const ampm = hours >= 12 ? 'PM' : 'AM';
         hours = hours % 12 || 12;
-
+        
         return `${hours}:${minutes} ${ampm}`;
     }
 
-    // ✅ GET ALL VALUES (THIS IS WHAT YOU MISSED)
+    // Get all values
     const employeeId = document.getElementById('markEmployee').value;
     const rawDate = document.getElementById('markDate').value;
     const status = document.getElementById('markStatus').value;
-
     const checkInRaw = document.getElementById('markCheckIn').value;
     const checkOutRaw = document.getElementById('markCheckOut').value;
 
-    const checkIn = convertTo12Hour(checkInRaw);
-    const checkOut = convertTo12Hour(checkOutRaw);
-
-
-
-    // ✅ DATE FIX (NO NEXT DAY ISSUE)
+    // Fix date to avoid timezone issues
     const date = new Date(rawDate + 'T00:00:00');
+
+    let checkIn = null;
+    let checkOut = null;
+
+    // ✅ Working statuses → require time
+    if (['PRESENT', 'LATE', 'HALF_DAY'].includes(status)) {
+        checkIn = convertTo12Hour(checkInRaw);
+        checkOut = convertTo12Hour(checkOutRaw);
+
+        if (!checkIn || !checkOut) {
+            showToast('Check-in and Check-out are required', 'error');
+            return;
+        }
+    }
+
+    // ❌ Non-working → force NULL (IMPORTANT FIX)
+    if (['ABSENT', 'LEAVE'].includes(status)) {
+        checkIn = null;
+        checkOut = null;
+    }
 
     if (!employeeId) {
         showToast('Please select an employee', 'error');
         return;
     }
     
-    if (!status || !checkIn || !checkOut) {
-    showToast('Status, Check-in and Check-out are required', 'error');
-    return;
-   }
+    if (!status) {
+        showToast('Please select a status', 'error');
+        return;
+    }
+    
+    // For PRESENT, LATE, HALF_DAY - check-in and check-out are required
+    if (status !== 'ABSENT' && status !== 'LEAVE') {
+        if (!checkIn || !checkOut) {
+            showToast('Check-in and Check-out are required for this status', 'error');
+            return;
+        }
+    }
 
     try {
-        await API.adminMarkAttendance({
+        const attendanceData = {
             employeeId,
             date,
-            status,
+            status: status.toUpperCase(), // Ensure uppercase for consistency
             checkIn: checkIn || null,
             checkOut: checkOut || null
-        });
+        };
+        
+        await API.adminMarkAttendance(attendanceData);
+
 
         showToast('Attendance marked successfully!', 'success');
         bootstrap.Modal.getInstance(document.getElementById('attendanceModal')).hide();
 
+        // Refresh the attendance table if same employee is selected
         const currentEmployee = document.getElementById('attendanceEmployee').value;
         if (currentEmployee === employeeId) {
             await loadEmployeeAttendance();
         }
 
+        // Also refresh dashboard stats if needed
+        await loadDashboardStats();
+
         document.getElementById('attendanceForm').reset();
 
     } catch (error) {
+        console.error('Save attendance error:', error);
         showToast(error.message || 'Failed to mark attendance', 'error');
     }
 }
@@ -1111,23 +1274,28 @@ async function deleteHoliday(id) {
 // SETTINGS
 // ============================================
 
-async function saveSettings() {
-    const companyName = document.getElementById('companyName').value;
-    const leaveQuota = document.getElementById('leaveQuota').value;
-    
-    try {
-        // Save settings to backend
-        const result = await API.saveSettings({
-            companyName: companyName,
-            annualLeaveQuota: parseInt(leaveQuota)
-        });
-        
-        showToast('Settings saved successfully!', 'success');
-    } catch (error) {
-        console.error('Save settings error:', error);
-        showToast(error.message || 'Failed to save settings', 'error');
+    async function saveSettings() {
+
+        try {
+
+            const totalAnnualLeaves = document.getElementById('totalAnnualLeaves').value;
+
+            await API.saveSettings({
+                totalAnnualLeaves: parseInt(totalAnnualLeaves) || 12
+            });
+
+            showToast('Settings saved successfully!', 'success');
+
+        } catch (error) {
+
+            console.error('Save settings error:', error);
+
+            showToast(
+                error.message || 'Failed to save settings',
+                'error'
+            );
+        }
     }
-}
 
 // ============================================
 // HELPER FUNCTIONS

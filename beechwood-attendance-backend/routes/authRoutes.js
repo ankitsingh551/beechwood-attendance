@@ -28,5 +28,4 @@ router.put('/change-password', protect, changePassword);
 
 // Admin only routes
 router.post('/admin/create-user', protect, adminOnly, adminCreateUser);
-
 module.exports = router;

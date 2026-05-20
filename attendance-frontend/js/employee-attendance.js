@@ -1,4 +1,4 @@
-// js/employee-attendance.js - Employee Attendance Logic with Real-time Updates
+// js/employee-attendance.js - Employee Attendance Logic
 // Beechwood Solutions India
 
 let employeeAttendance = [];
@@ -6,7 +6,6 @@ let currentUser = null;
 let approvedLeaveDates = [];
 let holidayDates = [];
 
-// Helper function for consistent date formatting
 function formatDateToString(date) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
@@ -18,42 +17,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     setupLogout();
     setupEventListeners();
     
-    // ========== REAL-TIME SOCKET ADDITIONS ==========
     if (typeof socket !== 'undefined') {
         socket.on('attendanceUpdated', async (data) => {
-            console.log('📢 Real-time attendance update:', data);
-            
             if (data.employeeId !== currentUser._id) return;
-            
-            // Reload current month/year data
             await loadAttendanceData();
-            
-            // Show notification
-            const date = new Date(data.date);
-            const formattedDate = date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-            showToast(`Attendance updated for ${formattedDate}: ${data.status}`, 'info');
-        });
-        
-        socket.on('leaveUpdated', async (data) => {
-            console.log('📢 Real-time leave update:', data);
-            
-            if (data.employeeId !== currentUser._id) return;
-            
-            // Reload attendance data as leaves affect attendance status
-            await loadAttendanceData();
-            
-            if (data.status === 'APPROVED') {
-                const startDate = new Date(data.startDate);
-                const endDate = new Date(data.endDate);
-                const formattedStart = startDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-                const formattedEnd = endDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-                showToast(`Leave approved from ${formattedStart} to ${formattedEnd}`, 'success');
-            } else if (data.status === 'REJECTED') {
-                showToast(`Leave request rejected`, 'info');
-            }
         });
     }
-    // ========== END REAL-TIME ADDITIONS ==========
 });
 
 async function checkAuth() {
@@ -66,43 +35,31 @@ async function checkAuth() {
 }
 
 function populateMonthYearDropdowns() {
-    // Populate months
     const monthSelect = document.getElementById('attendanceMonth');
     if (monthSelect) {
         monthSelect.innerHTML = '';
-        const months = [
-            'January', 'February', 'March', 'April', 'May', 'June',
-            'July', 'August', 'September', 'October', 'November', 'December'
-        ];
-        
-        const currentMonth = new Date().getMonth();
+        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth();
         
         months.forEach((month, index) => {
             const option = document.createElement('option');
             option.value = index + 1;
             option.textContent = month;
-            if (index === currentMonth) {
-                option.selected = true;
-            }
+            if (index === currentMonth) option.selected = true;
             monthSelect.appendChild(option);
         });
     }
     
-    // Populate years
     const yearSelect = document.getElementById('attendanceYear');
     if (yearSelect) {
         yearSelect.innerHTML = '';
         const currentYear = new Date().getFullYear();
-        const startYear = 2020;
-        const endYear = currentYear + 5;
-        
-        for (let year = startYear; year <= endYear; year++) {
+        for (let year = 2020; year <= currentYear + 5; year++) {
             const option = document.createElement('option');
             option.value = year;
             option.textContent = year;
-            if (year === currentYear) {
-                option.selected = true;
-            }
+            if (year === currentYear) option.selected = true;
             yearSelect.appendChild(option);
         }
     }
@@ -123,14 +80,10 @@ function setupLogout() {
 
 function setupEventListeners() {
     const filterBtn = document.getElementById('filterBtn');
-    if (filterBtn) {
-        filterBtn.addEventListener('click', loadAttendanceData);
-    }
+    if (filterBtn) filterBtn.addEventListener('click', loadAttendanceData);
     
     const downloadBtn = document.getElementById('downloadAttendanceBtn');
-    if (downloadBtn) {
-        downloadBtn.addEventListener('click', downloadMyAttendance);
-    }
+    if (downloadBtn) downloadBtn.addEventListener('click', downloadMyAttendance);
 }
 
 async function loadAttendanceData() {
@@ -138,31 +91,16 @@ async function loadAttendanceData() {
         const monthSelect = document.getElementById('attendanceMonth');
         const yearSelect = document.getElementById('attendanceYear');
         
-        let month, year;
+        let month = monthSelect ? parseInt(monthSelect.value) : new Date().getMonth() + 1;
+        let year = yearSelect ? parseInt(yearSelect.value) : new Date().getFullYear();
         
-        if (monthSelect && yearSelect) {
-            month = parseInt(monthSelect.value);
-            year = parseInt(yearSelect.value);
-        } else {
-            const today = new Date();
-            month = today.getMonth() + 1;
-            year = today.getFullYear();
-        }
-        
-        // Show loading state
         const tbody = document.getElementById('attendanceTableBody');
-        if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">Loading attendance data...</td></tr>';
-        }
+        if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">Loading...</td></tr>';
         
-        // Load attendance for selected month/year
-        const data = await API.getMyAttendance({
-            month: month,
-            year: year
-        });
+        const data = await API.getMyAttendance({ month: month, year: year });
         employeeAttendance = data.data || [];
         
-        // Load approved leaves for selected month/year
+        // Load approved leaves
         const leavesData = await API.getMyLeaves();
         const leaves = leavesData.data || [];
         const approvedLeaves = leaves.filter(leave => leave.status === 'APPROVED');
@@ -180,7 +118,7 @@ async function loadAttendanceData() {
             }
         });
         
-        // Load holidays for selected month/year
+        // Load holidays
         const holidaysData = await API.getUpcomingHolidays();
         const holidays = holidaysData.data || [];
         holidayDates = holidays.map(holiday => {
@@ -191,10 +129,7 @@ async function loadAttendanceData() {
             return d.getFullYear() === year && d.getMonth() + 1 === month;
         });
         
-        // Sort attendance by date
         employeeAttendance.sort((a, b) => new Date(b.date) - new Date(a.date));
-        
-        // Generate complete monthly calendar
         generateMonthlyCalendar(year, month);
         
     } catch (error) {
@@ -207,17 +142,19 @@ function generateMonthlyCalendar(year, month) {
     const daysInMonth = new Date(year, month, 0).getDate();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const isCurrentMonth = (year === today.getFullYear() && month === today.getMonth() + 1);
     
     const allRecords = [];
     
     for (let day = 1; day <= daysInMonth; day++) {
         const currentDate = new Date(year, month - 1, day);
+        currentDate.setHours(0, 0, 0, 0);
         const dateStr = formatDateToString(currentDate);
-        const isFuture = isCurrentMonth && currentDate > today;
+        
+        const isFuture = currentDate > today;
         
         const attendanceRecord = employeeAttendance.find(record => {
             const recordDate = new Date(record.date);
+            recordDate.setHours(0, 0, 0, 0);
             return formatDateToString(recordDate) === dateStr;
         });
         
@@ -230,43 +167,34 @@ function generateMonthlyCalendar(year, month) {
             isFuture: isFuture
         };
         
-        // ⭐ FIRST priority — if attendance exists, always show it (even for future)
+        // ✅ PRIORITY 1: Attendance record exists - ALWAYS show it
         if (attendanceRecord) {
             record.checkIn = attendanceRecord.checkIn || '-';
             record.checkOut = attendanceRecord.checkOut || '-';
-
-            switch(attendanceRecord.status) {
-                case 'PRESENT':
-                    record.status = 'Present';
-                    break;
-                case 'LATE':
-                    record.status = 'Late';
-                    break;
-                case 'HALF_DAY':
-                    record.status = 'Half Day';
-                    break;
-                case 'ABSENT':
-                    record.status = 'Absent';
-                    break;
-                case 'LEAVE':
-                    record.status = 'Leave';
-                    break;
-                default:
-                    record.status = 'Present';
-            }
-
             record.workingHours = attendanceRecord.workingHours || 0;
+            
+            switch(attendanceRecord.status) {
+                case 'PRESENT': record.status = 'Present'; break;
+                case 'LATE': record.status = 'Late'; break;
+                case 'HALF_DAY': record.status = 'Half Day'; break;
+                case 'ABSENT': record.status = 'Absent'; break;
+                case 'LEAVE': record.status = 'Leave'; break;
+                default: record.status = 'Present';
+            }
         }
-        // ⭐ If no attendance, then decide by rules
+        // ✅ PRIORITY 2: No attendance? Check holiday
         else if (holidayDates.includes(dateStr)) {
             record.status = 'Holiday';
         }
+        // ✅ PRIORITY 3: No attendance? Check approved leave
         else if (approvedLeaveDates.includes(dateStr)) {
             record.status = 'Leave';
         }
+        // ✅ PRIORITY 4: No attendance? Check future date
         else if (isFuture) {
             record.status = 'Future';
         }
+        // ✅ PRIORITY 5: Past unmarked = Absent
         else {
             record.status = 'Absent';
         }
@@ -274,9 +202,7 @@ function generateMonthlyCalendar(year, month) {
         allRecords.push(record);
     }
     
-    // Sort by date (most recent first)
     allRecords.sort((a, b) => b.date - a.date);
-    
     displayAttendanceTable(allRecords);
     updateAttendanceSummary(allRecords);
 }
@@ -287,12 +213,6 @@ function displayAttendanceTable(records) {
     
     tbody.innerHTML = '';
     
-    if (!records || records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">No attendance records found</td></tr>';
-        return;
-    }
-    
-    // Apply status filter if selected
     const statusFilter = document.getElementById('statusFilter');
     const filterValue = statusFilter ? statusFilter.value : 'ALL';
     
@@ -305,40 +225,18 @@ function displayAttendanceTable(records) {
         const row = tbody.insertRow();
         const date = record.date;
         const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
-        
-        // Format date
         const formattedDate = `${date.getDate()} ${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
         
-        // Status badge class
         let statusClass = '';
-        
         switch(record.status) {
-            case 'Present':
-                statusClass = 'badge-success';
-                break;
-            case 'Late':
-                statusClass = 'badge-warning';
-                break;
-            case 'Half Day':
-                statusClass = 'badge-warning';
-                break;
-            case 'Absent':
-                statusClass = 'badge-danger';
-                break;
-            case 'Leave':
-                statusClass = 'badge-info';
-                break;
-            case 'Holiday':
-                statusClass = 'badge-secondary';
-                break;
-            case 'Future':
-                statusClass = 'badge-secondary';
-                break;
-            default:
-                statusClass = 'badge-secondary';
+            case 'Present': statusClass = 'badge-success'; break;
+            case 'Late': statusClass = 'badge-warning'; break;
+            case 'Half Day': statusClass = 'badge-warning'; break;
+            case 'Absent': statusClass = 'badge-danger'; break;
+            case 'Leave': statusClass = 'badge-info'; break;
+            default: statusClass = 'badge-secondary';
         }
         
-        // Format hours display
         let hoursDisplay = record.workingHours > 0 ? `${record.workingHours.toFixed(2)} hrs` : '0 hrs';
         
         row.innerHTML = `
@@ -353,9 +251,7 @@ function displayAttendanceTable(records) {
 }
 
 function updateAttendanceSummary(records) {
-    // Filter out future dates for summary
     const validRecords = records.filter(r => r.status !== 'Future');
-    
     const present = validRecords.filter(r => r.status === 'Present' || r.status === 'Late').length;
     const absent = validRecords.filter(r => r.status === 'Absent').length;
     const late = validRecords.filter(r => r.status === 'Late').length;
@@ -380,7 +276,6 @@ function downloadMyAttendance() {
     }
     
     let csv = 'Date,Day,Check In,Check Out,Status,Hours\n';
-    
     employeeAttendance.forEach(record => {
         const date = new Date(record.date);
         const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
@@ -422,37 +317,15 @@ function showToast(message, type) {
     if (type === 'success') icon = 'check-circle';
     if (type === 'error') icon = 'exclamation-circle';
     
-    toast.innerHTML = `
-        <i class="fas fa-${icon} me-2"></i>
-        ${message}
-        <button type="button" class="btn-close float-end" data-bs-dismiss="alert"></button>
-    `;
+    toast.innerHTML = `<i class="fas fa-${icon} me-2"></i>${message}<button type="button" class="btn-close float-end" data-bs-dismiss="alert"></button>`;
     document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        if (toast && toast.remove) toast.remove();
-    }, 3000);
+    setTimeout(() => { if (toast && toast.remove) toast.remove(); }, 3000);
 }
 
-// Add animation style if not exists
 if (!document.querySelector('#attendance-toast-style')) {
     const style = document.createElement('style');
     style.id = 'attendance-toast-style';
-    style.textContent = `
-        @keyframes slideInRight {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-        .toast-notification {
-            animation: slideInRight 0.3s ease;
-        }
-    `;
+    style.textContent = `@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } .toast-notification { animation: slideInRight 0.3s ease; }`;
     document.head.appendChild(style);
 }
 

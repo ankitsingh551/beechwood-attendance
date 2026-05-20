@@ -56,7 +56,7 @@ const sendWelcomeEmail = async (user, password) => {
 
 // Send Password Reset Email
 const sendPasswordResetEmail = async (user, resetToken) => {
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password.html?token=${resetToken}`;
     
     const mailOptions = {
         from: `"Beechwood Solutions" <${process.env.EMAIL_USER}>`,

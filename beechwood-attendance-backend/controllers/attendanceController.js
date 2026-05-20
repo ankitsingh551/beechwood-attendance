@@ -129,7 +129,7 @@ const markCheckIn = async (req, res, next) => {
         const checkInTime = checkIn || new Date().toLocaleTimeString();
 
         if (!attendance) {
-            attendance = new Attendance({
+                attendance = new Attendance({
                 employee: employeeId,
                 date: selectedDate,
                 checkIn: checkInTime,
@@ -148,6 +148,23 @@ const markCheckIn = async (req, res, next) => {
 
         await attendance.save();
 
+        // ✅ ADD THIS BLOCK
+        const io = req.app.get('io');
+
+        if (!isBulk) {
+
+            io.emit('attendanceUpdated', {
+                employeeId,
+                date: selectedDate,
+                status: attendance.status,
+                checkIn: attendance.checkIn,
+                checkOut: attendance.checkOut,
+                workingHours: attendance.workingHours,
+                isBulk: !!isBulk
+            });
+
+        }
+
         res.status(200).json({
             status: 'success',
             message: 'Check-in successful',
@@ -165,7 +182,13 @@ const markCheckIn = async (req, res, next) => {
 // ============================================
 const markCheckOut = async (req, res, next) => {
     try {
-        const { date, checkOut, location, remarks } = req.body;
+        const {
+            date,
+            checkOut,
+            location,
+            remarks,
+            isBulk
+        } = req.body;
         const employeeId = req.user._id;
         
         const selectedDate = new Date(date);
@@ -232,10 +255,28 @@ const markCheckOut = async (req, res, next) => {
         }
         
         await attendance.save();
-        
+
+        // ✅ ADD THIS BLOCK
+        const io = req.app.get('io');
+
+        if (!isBulk) {
+
+            io.emit('attendanceUpdated', {
+                employeeId,
+                date: selectedDate,
+                status: attendance.status,
+                checkIn: attendance.checkIn,
+                checkOut: attendance.checkOut,
+                workingHours: attendance.workingHours,
+                isBulk: !!isBulk
+            });
+
+        }
+
         res.status(200).json({
             status: 'success',
             message: 'Check-out successful',
+
             data: {
                 _id: attendance._id,
                 checkIn: attendance.checkIn,
@@ -341,34 +382,43 @@ const adminMarkAttendance = async (req, res, next) => {
         message: 'Status is required'
     });
 }
-        
-        if (attendance) {
-            // Update existing
-            if (checkIn) attendance.checkIn = checkIn;
-            if (checkOut) attendance.checkOut = checkOut;
-            attendance.status = status;
-            if (remarks) attendance.remarks = remarks;
-            attendance.markedBy = req.user._id;
-            attendance.isManual = true;
             
-            // Recalculate working hours if both times present
-            if (attendance.checkIn && attendance.checkOut) {
+        if (attendance) {
+            // ✅ Always update status first
+            attendance.status = status;
+
+            // ✅ FORCE overwrite (fix for Present → Absent issue)
+            attendance.checkIn = checkIn ?? null;
+            attendance.checkOut = checkOut ?? null;
+
+            // ✅ Reset working hours for non-working statuses
+            if (['ABSENT', 'LEAVE'].includes(status)) {
+                attendance.workingHours = 0;
+            }
+
+            // ✅ Recalculate only for working statuses
+            if (['PRESENT', 'LATE', 'HALF_DAY'].includes(status) && attendance.checkIn && attendance.checkOut) {
                 const checkInMinutes = parseTimeToMinutes(attendance.checkIn);
                 const checkOutMinutes = parseTimeToMinutes(attendance.checkOut);
-                
+
                 if (checkInMinutes !== null && checkOutMinutes !== null) {
                     let diffMinutes = checkOutMinutes - checkInMinutes;
                     if (diffMinutes < 0) diffMinutes += 24 * 60;
                     attendance.workingHours = parseFloat((diffMinutes / 60).toFixed(2));
                 }
             }
-        } else {
+
+            if (remarks) attendance.remarks = remarks;
+            attendance.markedBy = req.user._id;
+            attendance.isManual = true;
+        }else {
             // Create new
             attendance = new Attendance({
                 employee: employeeId,
                 date: selectedDate,
-                checkIn: checkIn || null,
-                checkOut: checkOut || null,
+                checkIn: ['ABSENT','LEAVE'].includes(status) ? null : (checkIn || null),
+                checkOut: ['ABSENT','LEAVE'].includes(status) ? null : (checkOut || null),
+                workingHours: ['ABSENT','LEAVE'].includes(status) ? 0 : undefined,
                 status: status,
                 remarks: remarks || '',
                 markedBy: req.user._id,
@@ -394,7 +444,10 @@ const adminMarkAttendance = async (req, res, next) => {
         io.emit('attendanceUpdated', {
             employeeId,
             date: selectedDate,
-            status: attendance.status
+            status: attendance.status,
+            checkIn: attendance.checkIn,
+            checkOut: attendance.checkOut,
+            workingHours: attendance.workingHours
         });
         
         res.status(200).json({
