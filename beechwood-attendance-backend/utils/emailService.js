@@ -1,42 +1,10 @@
 // utils/emailService.js - Email Service
 
-const nodemailer = require('nodemailer');
+const { Resend } = require("resend");
 
-const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: Number(process.env.EMAIL_PORT),
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-    secure: false,
-    requireTLS: true,
 
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-    },
-
-    connectionTimeout: 120000,
-    greetingTimeout: 60000,
-    socketTimeout: 120000,
-
-    pool: true,
-    maxConnections: 5,
-    maxMessages: 100,
-
-    tls: {
-        rejectUnauthorized: false,
-        minVersion: "TLSv1.2",
-    },
-});
-
-transporter.verify((error, success) => {
-
-    if (error) {
-        console.error("❌ SMTP Verify Error:", error);
-    } else {
-        console.log("✅ SMTP Server Ready");
-    }
-
-});
 
 // Send Welcome Email with Credentials
 const sendWelcomeEmail = async (user, password) => {
@@ -75,10 +43,14 @@ const sendWelcomeEmail = async (user, password) => {
     
     try {
 
-    const info = await transporter.sendMail(mailOptions);
+            const info = await resend.emails.send({
+            from: "Beechwood <onboarding@resend.dev>",
+            to: user.email,
+            subject: mailOptions.subject,
+            html: mailOptions.html,
+        });
 
-    console.log("✅ Welcome email sent:", info.messageId);
-
+        console.log("✅ Welcome email sent:", info);
     } catch (error) {
 
         console.error("❌ Welcome email failed:", error);
@@ -118,9 +90,14 @@ const sendPasswordResetEmail = async (user, resetToken) => {
     
     try {
 
-        const info = await transporter.sendMail(mailOptions);
+        const info = await resend.emails.send({
+        from: "Beechwood <onboarding@resend.dev>",
+        to: user.email,
+        subject: mailOptions.subject,
+        html: mailOptions.html,
+    });
 
-        console.log("✅ Reset email sent:", info.messageId);
+    console.log("✅ Reset email sent:", info);
 
     } catch (error) {
 
@@ -160,9 +137,14 @@ const sendVerificationEmail = async (user, token) => {
     
     try {
 
-    const info = await transporter.sendMail(mailOptions);
+        const info = await resend.emails.send({
+        from: "Beechwood <onboarding@resend.dev>",
+        to: user.email,
+        subject: mailOptions.subject,
+        html: mailOptions.html,
+    });
 
-    console.log("✅ Verification email sent:", info.messageId);
+    console.log("✅ Verification email sent:", info);
 
     } catch (error) {
 
