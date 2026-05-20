@@ -44,7 +44,7 @@ const sendWelcomeEmail = async (user, password) => {
     try {
 
             const info = await resend.emails.send({
-            from: "Beechwood <onboarding@resend.dev>",
+            from: "Beechwood Solutions <info@beechwoodsolutions.com>",
             to: user.email,
             subject: mailOptions.subject,
             html: mailOptions.html,
@@ -91,7 +91,7 @@ const sendPasswordResetEmail = async (user, resetToken) => {
     try {
 
         const info = await resend.emails.send({
-        from: "Beechwood <onboarding@resend.dev>",
+        from: "Beechwood Solutions <info@beechwoodsolutions.com>",
         to: user.email,
         subject: mailOptions.subject,
         html: mailOptions.html,
@@ -138,7 +138,7 @@ const sendVerificationEmail = async (user, token) => {
     try {
 
         const info = await resend.emails.send({
-        from: "Beechwood <onboarding@resend.dev>",
+        from: "Beechwood Solutions <info@beechwoodsolutions.com>",
         to: user.email,
         subject: mailOptions.subject,
         html: mailOptions.html,
