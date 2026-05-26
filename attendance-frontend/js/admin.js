@@ -524,24 +524,105 @@ window.showAddEmployeeModal = function() {
     document.getElementById('employeeModalTitle').textContent = 'Add New Employee';
     document.getElementById('employeeForm').reset();
     document.getElementById('employeeId').value = '';
+    document.getElementById('saveEmployeeBtn').textContent =
+    'Add Employee';
     new bootstrap.Modal(document.getElementById('employeeModal')).show();
 };
 
 async function editEmployee(id) {
+
     const emp = employees.find(e => e._id === id);
-    if (emp) {
-        document.getElementById('employeeModalTitle').textContent = 'Edit Employee';
-        document.getElementById('employeeId').value = emp._id;
-        document.getElementById('empName').value =
-        `${emp.firstName || ''} ${emp.lastName || ''}`.trim();
-        document.getElementById('empEmail').value = emp.email;
-        document.getElementById('empDepartment').value = emp.department;
-        document.getElementById('empDesignation').value = emp.designation;
-        document.getElementById('empPhone').value = emp.phone || '';
-        document.getElementById('grossSalary').value = emp.currentSalary || 0;
-        document.getElementById('tdsPercentage').value = emp.tdsPercentage || 10;
-        new bootstrap.Modal(document.getElementById('employeeModal')).show();
+
+    if (!emp) {
+        showToast('Employee not found', 'error');
+        return;
     }
+
+    document.getElementById('employeeModalTitle').textContent =
+        'Edit Employee';
+
+    document.getElementById('saveEmployeeBtn').textContent =
+    'Update Employee';
+
+    // ============================================
+    // BASIC FIELDS
+    // ============================================
+
+    document.getElementById('employeeId').value =
+        emp._id || '';
+
+    document.getElementById('empName').value =
+        `${emp.firstName || ''} ${emp.lastName || ''}`.trim();
+
+    document.getElementById('empEmail').value =
+        emp.email || '';
+
+    document.getElementById('empDepartment').value =
+        emp.department || '';
+
+    document.getElementById('empDesignation').value =
+        emp.designation || '';
+
+    document.getElementById('empPhone').value =
+        emp.phone || '';
+
+    document.getElementById('grossSalary').value =
+        emp.currentSalary || 0;
+
+    document.getElementById('tdsPercentage').value =
+        emp.tdsPercentage || 10;
+
+    // ============================================
+    // OPTIONAL SAFE FIELDS
+    // ============================================
+
+    const joiningDateEl =
+        document.getElementById('empJoiningDate');
+
+    if (joiningDateEl) {
+
+        joiningDateEl.value =
+            emp.joiningDate
+                ? new Date(emp.joiningDate)
+                    .toISOString()
+                    .split('T')[0]
+                : '';
+    }
+
+    const employeeIdEl =
+        document.getElementById('empEmployeeId');
+
+    if (employeeIdEl) {
+
+        employeeIdEl.value =
+            emp.employeeId || '';
+    }
+
+    const roleEl =
+        document.getElementById('empRole');
+
+    if (roleEl) {
+
+        roleEl.value =
+            emp.role || 'employee';
+    }
+
+    const statusEl =
+        document.getElementById('empStatus');
+
+    if (statusEl) {
+
+        statusEl.checked =
+            emp.isActive !== false;
+    }
+
+    // ============================================
+    // OPEN MODAL
+    // ============================================
+
+    new bootstrap.Modal(
+        document.getElementById('employeeModal')
+    ).show();
 }
 
 async function saveEmployee() {
@@ -613,31 +694,94 @@ async function addEmployee() {
 }
 
 async function updateEmployee(id) {
-    const fullName = document.getElementById('empName').value.trim();
+
+    const fullName =
+        document.getElementById('empName').value.trim();
+
+    const nameParts = fullName.split(' ');
+
+    const firstName = nameParts[0] || '';
+    const lastName =
+        nameParts.slice(1).join(' ') || '';
+
+    const employeeIdField =
+    document.getElementById('empEmployeeId');
+
+    const joiningDateField =
+    document.getElementById('empJoiningDate');
 
     const updateData = {
-        fullName: fullName,
-        department: document.getElementById('empDepartment').value,
-        designation: document.getElementById('empDesignation').value,
-        phone: document.getElementById('empPhone').value,
-        currentSalary: parseFloat(
-        document.getElementById('grossSalary').value
-    ) || 0,
 
-    tdsPercentage: parseFloat(
-        document.getElementById('tdsPercentage').value
-    ) || 10
+        firstName,
+        lastName,
+
+        email:
+            document.getElementById('empEmail').value.trim(),
+
+        employeeId:
+            employeeIdField &&
+            employeeIdField.value.trim()
+                ? employeeIdField.value.trim()
+                : undefined,
+
+        joiningDate:
+            joiningDateField &&
+            joiningDateField.value
+                ? joiningDateField.value
+                : undefined,
+
+        role:
+            document.getElementById('empRole')?.value || 'employee',
+
+        isActive:
+            document.getElementById('empStatus')?.checked ?? true,
+
+        department:
+            document.getElementById('empDepartment').value,
+
+        designation:
+            document.getElementById('empDesignation').value,
+
+        phone:
+            document.getElementById('empPhone').value,
+
+        currentSalary:
+            parseFloat(
+                document.getElementById('grossSalary').value
+            ) || 0,
+
+        tdsPercentage:
+            parseFloat(
+                document.getElementById('tdsPercentage').value
+            ) || 10
     };
 
     try {
+
         await API.updateEmployee(id, updateData);
-        showToast('Employee updated successfully!', 'success');
-        bootstrap.Modal.getInstance(document.getElementById('employeeModal')).hide();
+
+        showToast(
+            'Employee updated successfully!',
+            'success'
+        );
+
+        bootstrap.Modal
+            .getInstance(
+                document.getElementById('employeeModal')
+            )
+            .hide();
+
         await loadEmployeesTable();
+
     } catch (error) {
-        showToast(error.message || 'Failed to update employee', 'error');
+
+        showToast(
+            error.message || 'Failed to update employee',
+            'error'
+        );
     }
 }
+
 async function deleteEmployee(id) {
     if (confirm('Are you sure you want to delete this employee?')) {
         try {

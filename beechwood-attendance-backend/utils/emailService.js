@@ -1,10 +1,27 @@
-// utils/emailService.js - Email Service
-
 const { Resend } = require("resend");
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let resend = null;
 
+// ============================================
+// OPTIONAL EMAIL SERVICE INITIALIZATION
+// ============================================
 
+if (process.env.RESEND_API_KEY) {
+
+    resend = new Resend(
+        process.env.RESEND_API_KEY
+    );
+
+    console.log(
+        "✅ Resend email service initialized"
+    );
+
+} else {
+
+    console.warn(
+        "⚠️ RESEND_API_KEY missing. Email service disabled."
+    );
+}
 
 // Send Welcome Email with Credentials
 const sendWelcomeEmail = async (user, password) => {
@@ -42,6 +59,15 @@ const sendWelcomeEmail = async (user, password) => {
     };
     
     try {
+
+             if (!resend) {
+
+                console.warn(
+                    "⚠️ Email skipped - Resend not configured"
+                );
+
+                return;
+            }
 
             const info = await resend.emails.send({
             from: "Beechwood Solutions <info@beechwoodsolutions.com>",
@@ -90,6 +116,15 @@ const sendPasswordResetEmail = async (user, resetToken) => {
     
     try {
 
+            if (!resend) {
+
+            console.warn(
+                "⚠️ Email skipped - Resend not configured"
+            );
+
+            return;
+        }
+
         const info = await resend.emails.send({
         from: "Beechwood Solutions <info@beechwoodsolutions.com>",
         to: user.email,
@@ -136,6 +171,14 @@ const sendVerificationEmail = async (user, token) => {
     };
     
     try {
+            if (!resend) {
+
+            console.warn(
+                "⚠️ Email skipped - Resend not configured"
+            );
+
+            return;
+        }
 
         const info = await resend.emails.send({
         from: "Beechwood Solutions <info@beechwoodsolutions.com>",

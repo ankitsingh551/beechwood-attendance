@@ -40,6 +40,20 @@ function isPastDate(date) {
     return compareDate < today;
 }
 
+function isBeforeJoiningDate(date) {
+
+    if (!currentUser?.joiningDate) return false;
+
+    const joiningDate = new Date(currentUser.joiningDate);
+    joiningDate.setHours(0, 0, 0, 0);
+
+    const compareDate = new Date(date);
+    compareDate.setHours(0, 0, 0, 0);
+
+    return compareDate < joiningDate;
+}
+
+
 function isFutureDate(date) {
     const today = getTodayDate();
     const compareDate = new Date(date);

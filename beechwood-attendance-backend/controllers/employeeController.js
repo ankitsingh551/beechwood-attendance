@@ -64,7 +64,20 @@ const getUserById = async (req, res, next) => {
 // ============================================
 const addUser = async (req, res, next) => {
     try {
-        const { firstName, lastName, email, phone, department, designation, role } = req.body;
+        const {
+            firstName,
+            lastName,
+            email,
+            employeeId,
+            phone,
+            department,
+            designation,
+            joiningDate,
+            currentSalary,
+            tdsPercentage,
+            role,
+            isActive
+        } = req.body;
 
         const existingUser = await User.findOne({ email });
         if (existingUser) {
@@ -84,12 +97,32 @@ const addUser = async (req, res, next) => {
             firstName,
             lastName,
             email,
+            employeeId,
+            joiningDate,
+
             password: plainPassword,
+
             phone: phone || '',
-            department: department || defaultDepartment,
-            designation: designation || defaultDesignation,
+
+            department:
+                department || defaultDepartment,
+
+            designation:
+                designation || defaultDesignation,
+
+            currentSalary:
+                currentSalary || 0,
+
+            tdsPercentage:
+                tdsPercentage || 10,
+
             role: userRole,
-            isActive: true,
+
+            isActive:
+                isActive !== undefined
+                    ? isActive
+                    : true,
+
             createdBy: req.user._id
         });
 
@@ -123,7 +156,20 @@ const addUser = async (req, res, next) => {
 const updateUser = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { firstName, lastName, phone, department, designation, isActive } = req.body;
+        const {
+            firstName,
+            lastName,
+            email,
+            employeeId,
+            phone,
+            department,
+            designation,
+            joiningDate,
+            currentSalary,
+            tdsPercentage,
+            role,
+            isActive
+        } = req.body;
 
         const user = await User.findById(id);
 
@@ -134,11 +180,17 @@ const updateUser = async (req, res, next) => {
             });
         }
 
-        if (firstName) user.firstName = firstName;
-        if (lastName) user.lastName = lastName;
-        if (phone) user.phone = phone;
-        if (department) user.department = department;
-        if (designation) user.designation = designation;
+        if (firstName !== undefined) user.firstName = firstName;
+        if (lastName !== undefined) user.lastName = lastName;
+        if (email !== undefined) user.email = email;
+        if (employeeId !== undefined) user.employeeId = employeeId;
+        if (phone !== undefined) user.phone = phone;
+        if (department !== undefined) user.department = department;
+        if (designation !== undefined) user.designation = designation;
+        if (joiningDate !== undefined) user.joiningDate = joiningDate;
+        if (currentSalary !== undefined) user.currentSalary = currentSalary;
+        if (tdsPercentage !== undefined) user.tdsPercentage = tdsPercentage;
+        if (role !== undefined) user.role = role;
         if (isActive !== undefined) user.isActive = isActive;
 
         await user.save();

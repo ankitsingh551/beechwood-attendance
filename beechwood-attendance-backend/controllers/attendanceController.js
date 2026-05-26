@@ -90,6 +90,33 @@ const markCheckIn = async (req, res, next) => {
 
         const selectedDate = new Date(date);
 
+
+        // ============================================
+        // ✅ JOINING DATE VALIDATION
+        // ============================================
+
+        const employee = await User.findById(employeeId);
+
+        if (!employee) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Employee not found'
+            });
+        }
+
+        const joiningDate = new Date(employee.joiningDate);
+        joiningDate.setHours(0, 0, 0, 0);
+
+        selectedDate.setHours(0, 0, 0, 0);
+
+        if (selectedDate < joiningDate) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Attendance cannot be marked before joining date'
+            });
+        }
+
+
           // ✅ CORRECT PLACE
         const onLeave = await isOnApprovedLeave(employeeId, selectedDate);
         if (onLeave) {
@@ -192,6 +219,33 @@ const markCheckOut = async (req, res, next) => {
         const employeeId = req.user._id;
         
         const selectedDate = new Date(date);
+
+
+    // ============================================
+        // ✅ JOINING DATE VALIDATION
+        // ============================================
+
+        const employee = await User.findById(employeeId);
+
+        if (!employee) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Employee not found'
+            });
+        }
+
+        const joiningDate = new Date(employee.joiningDate);
+        joiningDate.setHours(0, 0, 0, 0);
+
+        selectedDate.setHours(0, 0, 0, 0);
+
+        if (selectedDate < joiningDate) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Attendance cannot be marked before joining date'
+            });
+        }
+
         
         // ✅ CORRECT PLACE
         const onLeave = await isOnApprovedLeave(employeeId, selectedDate);
@@ -351,6 +405,26 @@ const adminMarkAttendance = async (req, res, next) => {
         
         // Check if employee exists
         const employee = await User.findById(employeeId);
+
+        // ============================================
+        // ✅ JOINING DATE VALIDATION
+        // ============================================
+
+        const joiningDate = new Date(employee.joiningDate);
+
+        joiningDate.setHours(0, 0, 0, 0);
+
+        selectedDate.setHours(0, 0, 0, 0);
+
+        if (selectedDate < joiningDate) {
+
+            return res.status(400).json({
+                status: 'error',
+                message:
+                    'Attendance cannot be marked before joining date'
+            });
+        }
+
         if (!employee) {
             return res.status(404).json({
                 status: 'error',
