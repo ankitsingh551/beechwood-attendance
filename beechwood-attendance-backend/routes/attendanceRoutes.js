@@ -11,7 +11,8 @@ const {
     adminMarkAttendance,
     getEmployeeAttendance,
     getMonthlySummary,
-    getMyMonthlySummary
+    getMyMonthlySummary,
+    bulkReverseAttendance
 } = require('../controllers/attendanceController');
 
 // Employee routes
@@ -23,6 +24,13 @@ router.get('/my-summary', protect, getMyMonthlySummary);
 
 // Admin routes
 router.post('/admin-mark', protect, adminOnly, adminMarkAttendance);
+
+router.post(
+    '/bulk-reverse',
+    protect,
+    adminOnly,
+    bulkReverseAttendance
+);
 router.get('/employee/:employeeId', protect, adminOnly, getEmployeeAttendance);
 router.get('/monthly-summary', protect, adminOnly, getMonthlySummary);
 

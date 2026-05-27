@@ -38,6 +38,22 @@ const getEndOfDay = (date) => {
 };
 
 // ============================================
+// HELPER: SAFE LOCAL DATE
+// ============================================
+
+const normalizeLocalDate = (date) => {
+
+    const d = new Date(date);
+
+    return new Date(
+        d.getFullYear(),
+        d.getMonth(),
+        d.getDate()
+    );
+};
+
+
+// ============================================
 // HELPER: Validate date is in current month
 // ============================================
 const isDateInCurrentMonth = (date) => {
@@ -88,7 +104,7 @@ const markCheckIn = async (req, res, next) => {
         const employeeId = req.user._id;
         const userRole = req.user.role;
 
-        const selectedDate = new Date(date);
+        const selectedDate = normalizeLocalDate(date);
 
 
         // ============================================
@@ -126,8 +142,7 @@ const markCheckIn = async (req, res, next) => {
             });
         }
         // Only restrict real-time employee check-in
-        const isRealtimeEmployee =
-            userRole === 'EMPLOYEE' && !isBulk;
+        const isRealtimeEmployee = userRole === 'employee' && !isBulk;
 
         if (isRealtimeEmployee) {
             if (!isDateNotInFuture(selectedDate)) {
@@ -155,23 +170,84 @@ const markCheckIn = async (req, res, next) => {
 
         const checkInTime = checkIn || new Date().toLocaleTimeString();
 
-        if (!attendance) {
-                attendance = new Attendance({
-                employee: employeeId,
-                date: selectedDate,
-                checkIn: checkInTime,
-                location: location || {},
-                remarks: remarks || '',
-                markedBy: employeeId,
-                isManual: !!isBulk,
-                status: 'PRESENT'
-            });
-        } else {
-            attendance.checkIn = checkInTime;
-            attendance.location = location || attendance.location;
-            attendance.remarks = remarks || attendance.remarks;
-            attendance.isManual = !!isBulk;
-        }
+        // ============================================
+// CASE 1:
+// REVERSED ATTENDANCE EXISTS
+// RESTORE SAME RECORD
+// ============================================
+
+if (attendance && attendance.isReversed) {
+
+    attendance.isReversed = false;
+
+    attendance.reversedAt = null;
+
+    attendance.reversedBy = null;
+
+    attendance.checkIn = checkInTime;
+
+    attendance.checkOut = null;
+
+    attendance.workingHours = 0;
+
+    attendance.location = location || {};
+
+    attendance.remarks =
+        remarks || 'Attendance restored';
+
+    attendance.markedBy = employeeId;
+
+    attendance.isManual = !!isBulk;
+
+    attendance.status = 'PRESENT';
+}
+
+// ============================================
+// CASE 2:
+// NO RECORD EXISTS
+// CREATE NEW
+// ============================================
+
+else if (!attendance) {
+
+    attendance = new Attendance({
+
+        employee: employeeId,
+
+        date: selectedDate,
+
+        checkIn: checkInTime,
+
+        location: location || {},
+
+        remarks: remarks || '',
+
+        markedBy: employeeId,
+
+        isManual: !!isBulk,
+
+        status: 'PRESENT'
+    });
+}
+
+// ============================================
+// CASE 3:
+// ACTIVE ATTENDANCE EXISTS
+// UPDATE EXISTING
+// ============================================
+
+else {
+
+    attendance.checkIn = checkInTime;
+
+    attendance.location =
+        location || attendance.location;
+
+    attendance.remarks =
+        remarks || attendance.remarks;
+
+    attendance.isManual = !!isBulk;
+}
 
         await attendance.save();
 
@@ -218,7 +294,7 @@ const markCheckOut = async (req, res, next) => {
         } = req.body;
         const employeeId = req.user._id;
         
-        const selectedDate = new Date(date);
+        const selectedDate = normalizeLocalDate(date);
 
 
     // ============================================
@@ -258,7 +334,11 @@ const markCheckOut = async (req, res, next) => {
         
         // Find attendance record
         const attendance = await Attendance.findOne({
+
             employee: employeeId,
+
+            isReversed: { $ne: true },
+
             date: {
                 $gte: getStartOfDay(selectedDate),
                 $lte: getEndOfDay(selectedDate)
@@ -355,7 +435,10 @@ const getMyAttendance = async (req, res, next) => {
         const employeeId = req.user._id;
         const { month, year, fromDate, toDate } = req.query;
         
-        let query = { employee: employeeId };
+        let query = {
+            employee: employeeId,
+            isReversed: { $ne: true }
+        };
         
         if (fromDate && toDate) {
             query.date = {
@@ -400,8 +483,7 @@ const adminMarkAttendance = async (req, res, next) => {
     try {
         const { employeeId, date, checkIn, checkOut, status, remarks } = req.body;
         
-        const selectedDate = new Date(date);
-        
+        const selectedDate = normalizeLocalDate(date);
         
         // Check if employee exists
         const employee = await User.findById(employeeId);
@@ -409,6 +491,14 @@ const adminMarkAttendance = async (req, res, next) => {
         // ============================================
         // ✅ JOINING DATE VALIDATION
         // ============================================
+            
+            if (!employee) {
+                return res.status(404).json({
+                    status: 'error',
+                    message: 'Employee not found'
+                });
+            }
+        
 
         const joiningDate = new Date(employee.joiningDate);
 
@@ -425,13 +515,6 @@ const adminMarkAttendance = async (req, res, next) => {
             });
         }
 
-        if (!employee) {
-            return res.status(404).json({
-                status: 'error',
-                message: 'Employee not found'
-            });
-        }
-        
         // Check if attendance already exists
         let attendance = await Attendance.findOne({
             employee: employeeId,
@@ -457,33 +540,97 @@ const adminMarkAttendance = async (req, res, next) => {
     });
 }
             
-        if (attendance) {
-            // ✅ Always update status first
+        // ============================================
+        // CASE 1:
+        // REVERSED ATTENDANCE EXISTS
+        // RESTORE SAME RECORD
+        // ============================================
+
+if (attendance && attendance.isReversed) {
+
+    attendance.isReversed = false;
+
+    attendance.reversedAt = null;
+
+    attendance.reversedBy = null;
+
+    attendance.status = status;
+
+    attendance.checkIn =
+        ['ABSENT', 'LEAVE'].includes(status)
+            ? null
+            : (checkIn || null);
+
+    attendance.checkOut =
+        ['ABSENT', 'LEAVE'].includes(status)
+            ? null
+            : (checkOut || null);
+
+    attendance.workingHours =
+        ['ABSENT', 'LEAVE'].includes(status)
+            ? 0
+            : attendance.workingHours;
+
+    attendance.remarks =
+        remarks || 'Attendance restored';
+
+    attendance.markedBy = req.user._id;
+
+    attendance.isManual = true;
+}
+
+        // ============================================
+        // CASE 2:
+        // ACTIVE ATTENDANCE EXISTS
+        // UPDATE
+        // ============================================
+
+        else if (attendance) {
+
             attendance.status = status;
 
-            // ✅ FORCE overwrite (fix for Present → Absent issue)
             attendance.checkIn = checkIn ?? null;
+
             attendance.checkOut = checkOut ?? null;
 
-            // ✅ Reset working hours for non-working statuses
             if (['ABSENT', 'LEAVE'].includes(status)) {
+
                 attendance.workingHours = 0;
             }
 
-            // ✅ Recalculate only for working statuses
-            if (['PRESENT', 'LATE', 'HALF_DAY'].includes(status) && attendance.checkIn && attendance.checkOut) {
-                const checkInMinutes = parseTimeToMinutes(attendance.checkIn);
-                const checkOutMinutes = parseTimeToMinutes(attendance.checkOut);
+            if (
+                ['PRESENT', 'LATE', 'HALF_DAY'].includes(status)
+                && attendance.checkIn
+                && attendance.checkOut
+            ) {
 
-                if (checkInMinutes !== null && checkOutMinutes !== null) {
-                    let diffMinutes = checkOutMinutes - checkInMinutes;
-                    if (diffMinutes < 0) diffMinutes += 24 * 60;
-                    attendance.workingHours = parseFloat((diffMinutes / 60).toFixed(2));
+                const checkInMinutes =
+                    parseTimeToMinutes(attendance.checkIn);
+
+                const checkOutMinutes =
+                    parseTimeToMinutes(attendance.checkOut);
+
+                if (
+                    checkInMinutes !== null &&
+                    checkOutMinutes !== null
+                ) {
+
+                    let diffMinutes =
+                        checkOutMinutes - checkInMinutes;
+
+                    if (diffMinutes < 0)
+                        diffMinutes += 24 * 60;
+
+                    attendance.workingHours =
+                        parseFloat((diffMinutes / 60).toFixed(2));
                 }
             }
 
-            if (remarks) attendance.remarks = remarks;
+            if (remarks)
+                attendance.remarks = remarks;
+
             attendance.markedBy = req.user._id;
+
             attendance.isManual = true;
         }else {
             // Create new
@@ -544,7 +691,10 @@ const getEmployeeAttendance = async (req, res, next) => {
         const { employeeId } = req.params;
         const { month, year } = req.query;
         
-        let query = { employee: employeeId };
+        let query = {
+            employee: employeeId,
+            isReversed: { $ne: true }
+        };
         
         if (month && year) {
             const startDate = new Date(year, month - 1, 1);
@@ -593,8 +743,18 @@ const getMonthlySummary = async (req, res, next) => {
         const endDate = new Date(selectedYear, selectedMonth, 0);
         
         const attendance = await Attendance.find({
-            date: { $gte: startDate, $lte: getEndOfDay(endDate) }
-        }).populate('employee', 'firstName lastName employeeId department');
+
+            isReversed: { $ne: true },
+
+            date: {
+                $gte: startDate,
+                $lte: getEndOfDay(endDate)
+            }
+
+        }).populate(
+            'employee',
+            'firstName lastName employeeId department'
+        );
         
         // Calculate summary
         const summary = {
@@ -664,8 +824,10 @@ const getMyMonthlySummary = async (req, res, next) => {
         
         // Get attendance records
         const attendance = await Attendance.find({
-            employee: employeeId,
+             employee: employeeId,
+             isReversed: { $ne: true },
             date: { $gte: startDate, $lte: getEndOfDay(endDate) }
+        
         });
         
         // Get approved leaves for this month
@@ -797,10 +959,14 @@ const unmarkAttendance = async (req, res, next) => {
         const { date } = req.body;
         const employeeId = req.user._id;
 
-        const selectedDate = new Date(date);
+        const selectedDate = normalizeLocalDate(date);
 
         const result = await Attendance.findOneAndDelete({
+
             employee: employeeId,
+
+            isReversed: { $ne: true },
+
             date: {
                 $gte: getStartOfDay(selectedDate),
                 $lte: getEndOfDay(selectedDate)
@@ -826,12 +992,119 @@ const unmarkAttendance = async (req, res, next) => {
 };
 
 // ============================================
+// 👑 ADMIN BULK REVERSE ATTENDANCE
+// ============================================
+
+const bulkReverseAttendance = async (req, res, next) => {
+
+    try {
+
+        const {
+            employeeId,
+            fromDate,
+            toDate,
+            action
+        } = req.body;
+
+        if (!employeeId || !fromDate || !toDate) {
+
+            return res.status(400).json({
+                status: 'error',
+                message: 'Employee and date range required'
+            });
+        }
+
+        const startDate = new Date(fromDate);
+        startDate.setHours(0, 0, 0, 0);
+
+        const endDate = new Date(toDate);
+        endDate.setHours(23, 59, 59, 999);
+
+        // ============================================
+        // FIND ATTENDANCE
+        // ============================================
+
+        const attendances = await Attendance.find({
+
+            employee: employeeId,
+
+            isReversed: { $ne: true },
+
+            date: {
+                $gte: startDate,
+                $lte: endDate
+            }
+        });
+
+        if (!attendances.length) {
+
+            return res.status(404).json({
+                status: 'error',
+                message: 'No attendance records found'
+            });
+        }
+
+        // ============================================
+        // PROCESS
+        // ============================================
+
+        for (const attendance of attendances) {
+
+            // ========================================
+            // REVERSE MODE
+            // ========================================
+            // ✅ Preserve approved leave
+
+            if (attendance.status === 'LEAVE') {
+                continue;
+            }
+
+            attendance.isReversed = true;
+
+            attendance.reversedBy = req.user._id;
+
+            attendance.reversedAt = new Date();
+
+            await attendance.save();
+        }
+
+        // ============================================
+        // SOCKET EVENT
+        // ============================================
+
+        const io = req.app.get('io');
+
+        io.emit('bulkAttendanceUpdated', {
+
+            employeeId,
+            fromDate,
+            toDate,
+            action
+        });
+
+        res.status(200).json({
+
+            status: 'success',
+
+            message: 'Attendance reversed successfully'
+        });
+
+    } catch (error) {
+
+        console.error('Bulk reverse error:', error);
+
+        next(error);
+    }
+};
+
+// ============================================
 // EXPORTS
 // ============================================
 module.exports = {
     markCheckIn,
     markCheckOut,
     unmarkAttendance,   // ⭐ ADD THIS
+    bulkReverseAttendance,
     getMyAttendance,
     adminMarkAttendance,
     getEmployeeAttendance,

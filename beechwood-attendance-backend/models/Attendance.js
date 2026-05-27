@@ -45,7 +45,23 @@ const attendanceSchema = new mongoose.Schema({
     isManual: {
         type: Boolean,
         default: false
+    },
+        isReversed: {
+        type: Boolean,
+        default: false
+    },
+
+    reversedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+
+    reversedAt: {
+        type: Date,
+        default: null
     }
+
+
 }, {
     timestamps: true
 });

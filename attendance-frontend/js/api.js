@@ -305,7 +305,6 @@ async function rejectLeave(leaveId, reason) {
 
 // ============================================
 // ATTENDANCE APIs (Employee)
-// ============================================
 
 async function markCheckIn(attendanceData) {
     const data = await apiCall('/attendance/checkin', {
@@ -351,6 +350,23 @@ async function getMyMonthlySummary(month, year) {
 // ============================================
 // ATTENDANCE APIs (Admin)
 // ============================================
+
+// ============================================
+// BULK REVERSE ATTENDANCE
+// ============================================
+
+async function bulkReverseAttendance(payload) {
+
+    const data = await apiCall('/attendance/bulk-reverse', {
+
+        method: 'POST',
+
+        body: JSON.stringify(payload)
+    });
+
+    return data;
+}
+
 
 async function getEmployeeAttendance(employeeId, month, year) {
     let url = `/attendance/employee/${employeeId}`;
@@ -440,6 +456,7 @@ async function saveSettings(settingsData) {
 window.API = {
     // Auth
     login,
+    bulkReverseAttendance,
     registerUser,  // Disabled - kept for reference
     forgotPassword,
     resetPassword,
@@ -449,6 +466,7 @@ window.API = {
     setCurrentUser,
     getCurrentUser,
     clearAuthToken,
+    
     
     // Admin User Creation (NEW - creates both employee and admin)
     adminCreateUser,

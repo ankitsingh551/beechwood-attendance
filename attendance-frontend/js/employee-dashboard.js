@@ -535,6 +535,14 @@ function initCalendar() {
         mode: "multiple",
         dateFormat: "Y-m-d",
 
+                disable: [
+            function(date) {
+
+                return isBeforeJoiningDate(date);
+
+            }
+        ],
+
         showMonths: 1,
         // 🔥 ADD THIS:
         onDayCreate: function(dObj, dStr, fp, dayElem) {
@@ -543,22 +551,41 @@ function initCalendar() {
             }
         },
 
-        onChange: function(selectedDatesArray) {
-            // Filter out dates that already have attendance
-            const validDates = selectedDatesArray.filter(date => {
-                const dateStr = formatDateToString(date);
-                return !attendanceDetails[dateStr];
-            });
-            
-            if (validDates.length !== selectedDatesArray.length) {
-                const disabledCount = selectedDatesArray.length - validDates.length;
-                showToast(`⚠️ ${disabledCount} date(s) already have attendance records.`, 'warning');
-                calendar.setDate(validDates);
-            }
-            
-            selectedDates = validDates;
-            updateSelectedDatesDisplay();
-        },
+    onChange: function(selectedDatesArray) {
+
+    // ============================================
+    // FILTER INVALID DATES
+    // ============================================
+
+    const validDates = selectedDatesArray.filter(date => {
+
+        const dateStr = formatDateToString(date);
+
+        // ❌ Already marked attendance
+        if (attendanceDetails[dateStr]) {
+            return false;
+        }
+
+        // ❌ Before joining date
+        if (isBeforeJoiningDate(date)) {
+            return false;
+        }
+
+        return true;
+    });
+
+        selectedDates = validDates;
+        updateSelectedDatesDisplay();
+
+        setTimeout(() => {
+
+            updateCalendarColors();
+
+            markFestivalDates();
+
+        }, 0);
+
+    },
         onReady: async function() {
         await loadAttendanceData();   // 🔥 VERY IMPORTANT
         updateCalendarColors();
@@ -594,17 +621,8 @@ function updateCalendarColors() {
         const formattedDate = formatDateToString(dateObj);
         
         // Remove all existing classes
-        day.classList.remove(
-            'holiday-date', 'leave-date', 'attendance-present',
-            'attendance-absent', 'attendance-late', 'attendance-halfday', 'festival-day'
-        );
-        
-        // Reset disabled state
-        day.classList.remove('flatpickr-disabled');
-        day.style.pointerEvents = '';
-        day.style.cursor = '';
-        day.removeAttribute('aria-disabled');
-        
+        day.classList.remove('festival-day'); 
+
         const compareDate = new Date(dateObj);
         compareDate.setHours(0, 0, 0, 0);
         const isPast = compareDate < today;
@@ -626,47 +644,77 @@ function updateCalendarColors() {
             day.style.pointerEvents = 'none';
             day.style.cursor = 'not-allowed';
         }
-        else if (holidayDates.includes(formattedDate) || isBeforeJoining) {
-            day.classList.add('flatpickr-disabled');
-            day.style.pointerEvents = 'none';
-            day.style.cursor = 'not-allowed';
-            if (holidayDates.includes(formattedDate)) day.classList.add('holiday-date');
-        }
-        else if (isFuture) {
-            // Future dates - selectable, no color
-            day.classList.remove('attendance-absent');
-        }
-        else if (isPast) {
-            // 🔥 Past unmarked = show ABSENT but still selectable
-            day.classList.add('attendance-absent');   // show red color
-            day.classList.remove('flatpickr-disabled');
+        else if (isBeforeJoining) {
 
-            day.style.pointerEvents = 'auto';         // keep clickable
-            day.style.cursor = 'pointer';
-        }
-    });
+        // ❌ Before joining date disabled
+
+        day.classList.add('flatpickr-disabled');
+
+        day.style.pointerEvents = 'none';
+
+        day.style.cursor = 'not-allowed';
+    }
+    else if (holidayDates.includes(formattedDate)) {
+
+        // ✅ Holiday selectable
+
+        day.classList.add('holiday-date');
+
+        day.classList.remove('flatpickr-disabled');
+
+        day.style.pointerEvents = 'auto';
+
+        day.style.cursor = 'pointer';
+    }
+            else if (isFuture) {
+                // Future dates - selectable, no color
+                day.classList.remove('attendance-absent');
+            }
+            else if (isPast) {
+                // 🔥 Past unmarked = show ABSENT but still selectable
+                day.classList.add('attendance-absent');   // show red color
+                day.classList.remove('flatpickr-disabled');
+
+                day.style.pointerEvents = 'auto';         // keep clickable
+                day.style.cursor = 'pointer';
+            }
+        });
 }
 
 function markFestivalDates() {
+
     if (!festivalsList || festivalsList.length === 0) return;
-    
-    setTimeout(() => {
-        const days = document.querySelectorAll('.flatpickr-day');
-        festivalsList.forEach(festival => {
-            const festivalDate = new Date(festival.date);
-            festivalDate.setHours(0, 0, 0, 0);
-            days.forEach(day => {
-                const dateObj = day.dateObj;
-                if (dateObj) {
-                    const dayDate = new Date(dateObj);
-                    dayDate.setHours(0, 0, 0, 0);
-                    if (dayDate.getTime() === festivalDate.getTime()) {
-                        day.classList.add('festival-day');
-                    }
-                }
-            });
+
+    const days =
+        document.querySelectorAll('.flatpickr-day');
+
+    festivalsList.forEach(festival => {
+
+        const festivalDate =
+            new Date(festival.date);
+
+        festivalDate.setHours(0, 0, 0, 0);
+
+        days.forEach(day => {
+
+            const dateObj = day.dateObj;
+
+            if (!dateObj) return;
+
+            const dayDate =
+                new Date(dateObj);
+
+            dayDate.setHours(0, 0, 0, 0);
+
+            if (
+                dayDate.getTime() ===
+                festivalDate.getTime()
+            ) {
+
+                day.classList.add('festival-day');
+            }
         });
-    }, 200);
+    });
 }
 
 function updateSelectedDatesDisplay() {

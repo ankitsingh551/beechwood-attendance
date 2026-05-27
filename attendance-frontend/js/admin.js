@@ -184,6 +184,37 @@ function setupEventListeners() {
             markAttendanceModal();
         });
     }
+
+    // ============================================
+        // BULK REVERSE BUTTON
+        // ============================================
+
+        const bulkReverseBtn =
+            document.getElementById('bulkReverseBtn');
+
+        if (bulkReverseBtn) {
+
+            bulkReverseBtn.addEventListener('click', () => {
+
+                loadBulkEmployeeDropdown();
+
+                new bootstrap.Modal(
+                    document.getElementById('bulkReverseModal')
+                ).show();
+            });
+        }
+
+        const confirmBulkReverseBtn =
+            document.getElementById('confirmBulkReverseBtn');
+
+        if (confirmBulkReverseBtn) {
+
+            confirmBulkReverseBtn.addEventListener(
+                'click',
+                bulkReverseAttendanceHandler
+            );
+        }
+
     
     const quickApproveLeavesBtn = document.getElementById('quickApproveLeavesBtn');
     if (quickApproveLeavesBtn) {
@@ -299,6 +330,163 @@ function setupEventListeners() {
         }
 
     }
+
+   // ============================================
+// LOAD BULK EMPLOYEE DROPDOWN
+// ============================================
+
+async function loadBulkEmployeeDropdown() {
+
+    const select = document.getElementById('bulkEmployee');
+
+    if (!select) return;
+
+    select.innerHTML = '';
+
+        const defaultOption =
+            document.createElement('option');
+
+        defaultOption.value = '';
+
+        defaultOption.textContent =
+            'Select Employee';
+
+        defaultOption.selected = true;
+
+        defaultOption.disabled = true;
+
+        select.appendChild(defaultOption);
+
+        employees.forEach(emp => {
+
+        const option = document.createElement('option');
+
+        option.value = emp._id;
+
+        option.textContent =
+            `${emp.firstName} ${emp.lastName}`;
+
+        select.appendChild(option);
+    });
+}
+
+// ============================================
+// BULK REVERSE HANDLER
+// ============================================
+
+async function bulkReverseAttendanceHandler() {
+
+    try {
+
+        const employeeId =
+            document.getElementById('bulkEmployee').value;
+
+        const fromDate =
+            document.getElementById('bulkFromDate').value;
+
+        const toDate =
+            document.getElementById('bulkToDate').value;
+
+        const action =
+            document.getElementById('bulkAction').value;
+
+        if (!employeeId || !fromDate || !toDate) {
+
+            showToast(
+                'Please fill all fields',
+                'error'
+            );
+
+            return;
+        }
+
+        showLoading();
+
+        const response =
+            await API.bulkReverseAttendance({
+
+                employeeId,
+                fromDate,
+                toDate,
+                action
+            });
+
+        if (response.status === 'success') {
+
+            showToast(
+                response.message,
+                'success'
+            );
+
+            bootstrap.Modal
+                .getInstance(
+                    document.getElementById(
+                        'bulkReverseModal'
+                    )
+                )
+                .hide();
+
+            // ============================================
+            // Reload only if employee selected
+            // ============================================
+
+            const selectedEmployee =
+                document.getElementById('attendanceEmployee')?.value;
+
+            if (selectedEmployee) {
+
+                await loadEmployeeAttendance();
+            }
+
+            await loadDashboardStats();
+
+        } else {
+
+            showToast(
+                response.message,
+                'error'
+            );
+        }
+
+    } catch (error) {
+
+        console.error(error);
+
+        showToast(
+            'Bulk reverse failed',
+            'error'
+        );
+
+        } finally {
+
+            hideLoading();
+        }
+}
+
+// ============================================
+// GLOBAL LOADING HELPERS
+// ============================================
+
+function showLoading() {
+
+    const overlay =
+        document.getElementById('loadingOverlay');
+
+    if (overlay) {
+        overlay.classList.add('show');
+    }
+}
+
+function hideLoading() {
+
+    const overlay =
+        document.getElementById('loadingOverlay');
+
+    if (overlay) {
+        overlay.classList.remove('show');
+    }
+}
+
 
 // ============================================
 // AUTHENTICATION

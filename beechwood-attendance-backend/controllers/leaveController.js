@@ -174,43 +174,76 @@ const approveLeave = async (req, res) => {
         const end = new Date(leave.endDate);
         
         // Loop through each date in leave range
-        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-            // Create date at start of day for consistent comparison
-            const currentDate = new Date(d);
-            currentDate.setHours(0, 0, 0, 0);
-            
-            // Find attendance record for this date
-            const attendance = await Attendance.findOne({
-                employee: leave.employee,
-                date: {
-                    $gte: new Date(currentDate.setHours(0, 0, 0, 0)),
-                    $lt: new Date(currentDate.setHours(23, 59, 59, 999))
-                }
-            });
-            
+        for (
+                let d = new Date(start);
+                d <= end;
+                d.setDate(d.getDate() + 1)
+            ) {
+
+                const currentDate = new Date(
+                    d.getFullYear(),
+                    d.getMonth(),
+                    d.getDate()
+                );
+
+                const startOfDay = new Date(
+                    currentDate.getFullYear(),
+                    currentDate.getMonth(),
+                    currentDate.getDate(),
+                    0, 0, 0, 0
+                );
+
+                const endOfDay = new Date(
+                    currentDate.getFullYear(),
+                    currentDate.getMonth(),
+                    currentDate.getDate(),
+                    23, 59, 59, 999
+                );
+
+                const attendance = await Attendance.findOne({
+
+                    employee: leave.employee,
+
+                    isReversed: { $ne: true },
+
+                    date: {
+                        $gte: startOfDay,
+                        $lte: endOfDay
+                    }
+                });
+
             if (attendance) {
-                // Update existing attendance to LEAVE
+
                 attendance.status = 'LEAVE';
                 attendance.checkIn = null;
                 attendance.checkOut = null;
                 attendance.workingHours = 0;
-                attendance.remarks = `Converted to leave - Approved leave: ${leave.leaveType}`;
+
+                attendance.remarks =
+                    `Converted to leave - Approved leave: ${leave.leaveType}`;
+
                 await attendance.save();
-                console.log(`✅ Updated attendance for ${currentDate.toISOString().split('T')[0]} to LEAVE`);
+
             } else {
-                // Create new attendance record with LEAVE status
-                await Attendance.create({
-                    employee: leave.employee,
-                    date: currentDate,
-                    status: 'LEAVE',
-                    checkIn: null,
-                    checkOut: null,
-                    workingHours: 0,
-                    remarks: `Leave approved: ${leave.leaveType} - ${leave.reason || ''}`
-                });
-                console.log(`✅ Created leave attendance for ${currentDate.toISOString().split('T')[0]}`);
-            }
-        }
+
+        await Attendance.create({
+
+            employee: leave.employee,
+
+            date: currentDate,
+
+            status: 'LEAVE',
+
+            checkIn: null,
+            checkOut: null,
+
+            workingHours: 0,
+
+            remarks:
+                `Leave approved: ${leave.leaveType}`
+        });
+    }
+}
 
         leave.status = 'APPROVED';
         leave.approvedBy = req.user._id;
