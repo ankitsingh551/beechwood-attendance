@@ -203,28 +203,69 @@ const approveLeave = async (req, res) => {
                 const attendance = await Attendance.findOne({
 
                     employee: leave.employee,
-
-                    isReversed: { $ne: true },
-
                     date: {
                         $gte: startOfDay,
                         $lte: endOfDay
                     }
                 });
 
-            if (attendance) {
+            // ============================================
+            // CASE 1:
+            // REVERSED ATTENDANCE EXISTS
+            // RESTORE SAME ROW AS LEAVE
+            // ============================================
 
-                attendance.status = 'LEAVE';
-                attendance.checkIn = null;
-                attendance.checkOut = null;
-                attendance.workingHours = 0;
+        if (attendance && attendance.isReversed) {
 
-                attendance.remarks =
-                    `Converted to leave - Approved leave: ${leave.leaveType}`;
+            attendance.isReversed = false;
 
-                await attendance.save();
+            attendance.reversedAt = null;
 
-            } else {
+            attendance.reversedBy = null;
+
+            attendance.status = 'LEAVE';
+
+            attendance.checkIn = null;
+
+            attendance.checkOut = null;
+
+            attendance.workingHours = 0;
+
+            attendance.remarks =
+                `Converted to leave - Approved leave: ${leave.leaveType}`;
+
+            await attendance.save();
+        }
+
+        // ============================================
+        // CASE 2:
+        // ACTIVE ATTENDANCE EXISTS
+        // UPDATE SAME ROW TO LEAVE
+        // ============================================
+
+        else if (attendance) {
+
+            attendance.status = 'LEAVE';
+
+            attendance.checkIn = null;
+
+            attendance.checkOut = null;
+
+            attendance.workingHours = 0;
+
+            attendance.remarks =
+                `Converted to leave - Approved leave: ${leave.leaveType}`;
+
+            await attendance.save();
+        }
+
+    // ============================================
+    // CASE 3:
+    // NO ATTENDANCE EXISTS
+    // CREATE NEW LEAVE ROW
+    // ============================================
+
+    else {
 
         await Attendance.create({
 
@@ -235,6 +276,7 @@ const approveLeave = async (req, res) => {
             status: 'LEAVE',
 
             checkIn: null,
+
             checkOut: null,
 
             workingHours: 0,
