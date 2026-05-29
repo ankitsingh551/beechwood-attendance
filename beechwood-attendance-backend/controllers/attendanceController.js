@@ -526,6 +526,7 @@ const getMyAttendance = async (req, res, next) => {
 // 👑 ADMIN: MARK ATTENDANCE FOR ANY EMPLOYEE
 // ============================================
 const adminMarkAttendance = async (req, res, next) => {
+
     try {
         const { employeeId, date, checkIn, checkOut, status, remarks } = req.body;
         
