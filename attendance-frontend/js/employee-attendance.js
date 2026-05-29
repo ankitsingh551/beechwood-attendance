@@ -100,24 +100,6 @@ async function loadAttendanceData() {
         const data = await API.getMyAttendance({ month: month, year: year });
         employeeAttendance = data.data || [];
         
-        // Load approved leaves
-        const leavesData = await API.getMyLeaves();
-        const leaves = leavesData.data || [];
-        const approvedLeaves = leaves.filter(leave => leave.status === 'APPROVED');
-        
-        approvedLeaveDates = [];
-        approvedLeaves.forEach(leave => {
-            const start = new Date(leave.startDate);
-            const end = new Date(leave.endDate);
-            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-                const dateStr = formatDateToString(d);
-                const leaveDate = new Date(dateStr);
-                if (leaveDate.getFullYear() === year && leaveDate.getMonth() + 1 === month) {
-                    approvedLeaveDates.push(dateStr);
-                }
-            }
-        });
-        
         // Load holidays
         const holidaysData = await API.getUpcomingHolidays();
         const holidays = holidaysData.data || [];
@@ -186,17 +168,33 @@ function generateMonthlyCalendar(year, month) {
         else if (holidayDates.includes(dateStr)) {
             record.status = 'Holiday';
         }
-        // ✅ PRIORITY 3: No attendance? Check approved leave
-        else if (approvedLeaveDates.includes(dateStr)) {
-            record.status = 'Leave';
-        }
+        
         // ✅ PRIORITY 4: No attendance? Check future date
         else if (isFuture) {
             record.status = 'Future';
         }
         // ✅ PRIORITY 5: Past unmarked = Absent
         else {
-            record.status = 'Absent';
+
+            const joiningDate =
+                new Date(currentUser.joiningDate);
+
+            joiningDate.setHours(0, 0, 0, 0);
+
+            // Only AFTER joining date
+            if (
+                currentDate < today &&
+                currentDate >= joiningDate
+            ) {
+
+                record.status = 'Absent';
+            }
+
+            // Before joining date
+            else {
+
+                record.status = '';
+            }
         }
         
         allRecords.push(record);
@@ -234,7 +232,7 @@ function displayAttendanceTable(records) {
             case 'Half Day': statusClass = 'badge-warning'; break;
             case 'Absent': statusClass = 'badge-danger'; break;
             case 'Leave': statusClass = 'badge-info'; break;
-            default: statusClass = 'badge-secondary';
+            default: statusClass = '';
         }
         
         let hoursDisplay = record.workingHours > 0 ? `${record.workingHours.toFixed(2)} hrs` : '0 hrs';

@@ -241,25 +241,18 @@ const data = { present, late, halfDay, absent, leave };
         }
         
         const totalAbsent = (data.absent || 0) + missedPastDates;
-        // ============================================
+       
         // LEAVE BALANCE (YEARLY)
         // ============================================
 
-        // Get yearly attendance records
-        const yearlyAttendance = await API.getMyAttendance({
-            year: currentYear
-        });
-
-        const yearlyRecords = yearlyAttendance.data || [];
-
-        // Count all yearly leave records
-        const usedLeaves = yearlyRecords.filter(record =>
-            (record.status || '').toUpperCase() === 'LEAVE'
-        ).length;
-
-        // Get total annual leaves from backend
+        // ✅ Get yearly leave balance directly from backend
         const balanceData = await API.getLeaveBalance();
-        const totalLeaves = balanceData.data?.totalLeaves || 12;
+
+        const remainingLeaves =
+            balanceData.data?.remainingLeaves;
+
+        const totalLeaves =
+            balanceData.data?.totalLeaves;
 
         // Dashboard Elements
         const presentDaysEl = document.getElementById('presentDays');
@@ -281,10 +274,11 @@ const data = { present, late, halfDay, absent, leave };
         }
 
         // Annual Leave Balance
-        if (leaveBalanceEl) {
-            const remainingLeaves = totalLeaves - usedLeaves;
-            leaveBalanceEl.textContent = `${remainingLeaves}/${totalLeaves}`;
-        }
+            if (leaveBalanceEl) {
+
+                leaveBalanceEl.textContent =
+                    `${remainingLeaves}/${totalLeaves}`;
+            }
     } catch (error) {
         console.error('Error loading dashboard:', error);
     }
@@ -561,8 +555,14 @@ function initCalendar() {
 
         const dateStr = formatDateToString(date);
 
-        // ❌ Already marked attendance
-        if (attendanceDetails[dateStr]) {
+        const attendanceRecord =
+        attendanceDetails[dateStr];
+
+        if (
+            attendanceRecord &&
+            attendanceRecord.status &&
+            attendanceRecord.status !== ''
+        ) {
             return false;
         }
 
@@ -620,15 +620,37 @@ function updateCalendarColors() {
         
         const formattedDate = formatDateToString(dateObj);
         
-        // Remove all existing classes
-        day.classList.remove('festival-day'); 
+        // ============================================
+        // RESET OLD CLASSES FIRST
+        // ============================================
+
+        day.classList.remove(
+            'festival-day',
+            'attendance-present',
+            'attendance-late',
+            'attendance-halfday',
+            'attendance-absent',
+            'leave-date',
+            'holiday-date',
+            'flatpickr-disabled'
+        );
+
+        // Reset inline styles
+        day.style.pointerEvents = '';
+        day.style.cursor = '';
 
         const compareDate = new Date(dateObj);
         compareDate.setHours(0, 0, 0, 0);
         const isPast = compareDate < today;
         const isFuture = compareDate > today;
         const isBeforeJoining = compareDate < joiningDate;
-        const hasAttendance = attendanceDetails[formattedDate] !== undefined;
+        const attendanceRecord =
+        attendanceDetails[formattedDate];
+
+        const hasAttendance =
+        attendanceRecord &&
+        attendanceRecord.status &&
+        attendanceRecord.status !== '';
         
         if (hasAttendance) {
             const status = attendanceDetails[formattedDate].status;
@@ -752,17 +774,32 @@ async function submitBulkAttendance() {
         return;
     }
     
-    // Check for dates that already have attendance
     const invalidDates = selectedDates.filter(date => {
-        const dateStr = formatDateToString(date);
-        return attendanceDetails[dateStr] !== undefined;
-    });
+
+    const dateStr = formatDateToString(date);
+
+    const attendanceRecord =
+        attendanceDetails[dateStr];
+
+    return (
+        attendanceRecord &&
+        attendanceRecord.status &&
+        attendanceRecord.status !== ''
+    );
+});
     
     if (invalidDates.length > 0) {
         showToast(`⚠️ ${invalidDates.length} date(s) already have attendance. Please deselect them.`, 'warning');
         selectedDates = selectedDates.filter(date => {
             const dateStr = formatDateToString(date);
-            return attendanceDetails[dateStr] === undefined;
+            const attendanceRecord =
+            attendanceDetails[dateStr];
+
+            return !(
+                attendanceRecord &&
+                attendanceRecord.status &&
+                attendanceRecord.status !== ''
+        );
         });
         if (calendar) calendar.setDate(selectedDates);
         updateSelectedDatesDisplay();
@@ -857,31 +894,47 @@ async function submitBulkAttendance() {
         successCount += results.filter(r => r).length;
     }
 
-    // Reload all data
-    await loadAttendanceData();
-    await loadDashboard();
-    
-    if (calendar) {
-    // ✅ clear selected dates first
-    calendar.clear();
-    selectedDates = [];
-    updateSelectedDatesDisplay();
+            // ============================================
+            // FORCE FRESH DATA FROM DATABASE
+            // ============================================
 
-    // ✅ wait until attendance fully refreshed
-    await loadAttendanceData();
+            // Small delay to allow MongoDB writes to complete
+            await new Promise(resolve => setTimeout(resolve, 500));
 
-    // ✅ then repaint calendar
-    requestAnimationFrame(() => {
-        updateCalendarColors();
-        markFestivalDates();
-    });
+            // Reload latest attendance
+            await loadAttendanceData();
+
+            await loadDashboard();
+
+            if (calendar) {
+
+                // Clear selected dates
+                calendar.clear();
+
+                selectedDates = [];
+
+                updateSelectedDatesDisplay();
+
+                // Reload fresh attendance from DB
+                await loadAttendanceData();
+
+                // Small stabilization delay
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                // Force complete redraw
+                calendar.redraw();
+
+                // Repaint only AFTER redraw
+                updateCalendarColors();
+
+                markFestivalDates();
+            }
+            
+            showToast(`✅ Successfully processed ${successCount} of ${processedDatesCount} dates`, successCount > 0 ? 'success' : 'error');
+            
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
     }
-    
-    showToast(`✅ Successfully processed ${successCount} of ${processedDatesCount} dates`, successCount > 0 ? 'success' : 'error');
-    
-    submitBtn.innerHTML = originalText;
-    submitBtn.disabled = false;
-}
 
 async function markAllRemainingDates() {
     await loadAttendanceData();
@@ -899,8 +952,17 @@ async function markAllRemainingDates() {
     
     const remainingDates = allDates.filter(date => {
         const dateStr = formatDateToString(date);
-        return !attendanceDetails[dateStr] && !holidayDates.includes(dateStr);
-    });
+        const attendanceRecord =
+        attendanceDetails[dateStr];
+
+        const hasAttendance =
+            attendanceRecord &&
+            attendanceRecord.status &&
+            attendanceRecord.status !== '';
+
+        return !hasAttendance &&
+        !holidayDates.includes(dateStr);
+        });
     
     if (remainingDates.length === 0) {
         showToast('No remaining dates to mark for this month.', 'info');

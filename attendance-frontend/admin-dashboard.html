@@ -382,15 +382,26 @@
                                 </div>
                             </div>
                         </div>
+                        <!-- PRESENT TODAY CARD -->
                         <div class="col-md-3">
-                            <div class="card stat-card bg-success text-white" data-section="attendance">
+                            <div class="card stat-card bg-success text-white"
+                                id="presentTodayCard"
+                                style="cursor:pointer;">
+
                                 <div class="card-body">
-                                    <h6>Present Today</h6>
+                                    <h6>
+                                        <i class="fas fa-user-check me-2"></i>
+                                        Present Today
+                                    </h6>
+
                                     <h2 id="presentToday">0</h2>
-                                    <small>Checked In</small>
+
+                                    <small>Employees Present</small>
                                 </div>
+
                             </div>
                         </div>
+
                         <div class="col-md-3">
                             <div class="card stat-card bg-warning text-white" data-section="leaves">
                                 <div class="card-body">
@@ -400,13 +411,24 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- ON LEAVE TODAY CARD -->
                         <div class="col-md-3">
-                            <div class="card stat-card bg-info text-white" data-section="attendance">
+                            <div class="card stat-card bg-info text-white"
+                                id="leaveTodayCard"
+                                style="cursor:pointer;">
+
                                 <div class="card-body">
-                                    <h6>On Leave Today</h6>
+                                    <h6>
+                                        <i class="fas fa-user-clock me-2"></i>
+                                        On Leave Today
+                                    </h6>
+
                                     <h2 id="onLeaveToday">0</h2>
-                                    <small>Approved Leaves</small>
+
+                                    <small>Employees on Leave</small>
                                 </div>
+
                             </div>
                         </div>
                     </div>
@@ -947,6 +969,65 @@
             </div>
 
         </div>
+
+        <!-- ============================================
+            EMPLOYEE LIST MODAL
+            ============================================ -->
+
+            <div class="modal fade"
+                id="employeeListModal"
+                tabindex="-1">
+
+                <div class="modal-dialog modal-lg">
+
+                    <div class="modal-content">
+
+                        <div class="modal-header">
+
+                            <h5 class="modal-title"
+                                id="employeeListTitle">
+                                Employees
+                            </h5>
+
+                            <button type="button"
+                                    class="btn-close"
+                                    data-bs-dismiss="modal">
+                            </button>
+
+                        </div>
+
+                        <div class="modal-body">
+
+                            <div class="table-responsive">
+
+                                <table class="table table-bordered">
+
+                                    <thead>
+
+                                        <tr>
+                                            <th>Employee ID</th>
+                                            <th>Name</th>
+                                            <th>Department</th>
+                                            <th>Status</th>
+                                        </tr>
+
+                                    </thead>
+
+                                    <tbody id="employeeListTableBody">
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
 
 
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>

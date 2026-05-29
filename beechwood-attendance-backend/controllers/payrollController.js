@@ -22,6 +22,7 @@ exports.generateMonthlyPayroll = async (req, res) => {
 
             const attendance = await Attendance.find({
                 employee: employee._id,
+                isReversed: { $ne: true },
                 date: {
                     $gte: new Date(year, month - 1, 1),
                     $lt: new Date(year, month, 1)

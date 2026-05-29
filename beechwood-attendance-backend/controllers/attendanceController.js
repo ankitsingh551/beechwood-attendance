@@ -133,14 +133,37 @@ const markCheckIn = async (req, res, next) => {
         }
 
 
-          // ✅ CORRECT PLACE
-        const onLeave = await isOnApprovedLeave(employeeId, selectedDate);
-        if (onLeave) {
-            return res.status(400).json({
-                status: 'error',
-                message: 'You are on approved leave for this date. Attendance not allowed.'
+            // ============================================
+            // CHECK LEAVE ONLY IF NO ACTIVE ATTENDANCE
+            // ============================================
+
+            const existingAttendance = await Attendance.findOne({
+
+                employee: employeeId,
+
+                isReversed: { $ne: true },
+
+                date: {
+                    $gte: getStartOfDay(selectedDate),
+                    $lte: getEndOfDay(selectedDate)
+                }
             });
-        }
+
+            const onLeave =
+                await isOnApprovedLeave(employeeId, selectedDate);
+
+            // ❌ Block ONLY when:
+            // Leave exists
+            // AND no active attendance exists yet
+
+            if (onLeave && !existingAttendance) {
+
+                return res.status(400).json({
+                    status: 'error',
+                    message:
+                        'You are on approved leave for this date. Attendance not allowed.'
+                });
+            }
         // Only restrict real-time employee check-in
         const isRealtimeEmployee = userRole === 'employee' && !isBulk;
 
@@ -323,14 +346,37 @@ const markCheckOut = async (req, res, next) => {
         }
 
         
-        // ✅ CORRECT PLACE
-        const onLeave = await isOnApprovedLeave(employeeId, selectedDate);
-        if (onLeave) {
-            return res.status(400).json({
-                status: 'error',
-                message: 'You are on approved leave for this date. Cannot mark check-out.'
+        // ============================================
+            // CHECK LEAVE ONLY IF NO ACTIVE ATTENDANCE
+            // ============================================
+
+            const existingAttendance = await Attendance.findOne({
+
+                employee: employeeId,
+
+                isReversed: { $ne: true },
+
+                date: {
+                    $gte: getStartOfDay(selectedDate),
+                    $lte: getEndOfDay(selectedDate)
+                }
             });
-        }
+
+            const onLeave =
+                await isOnApprovedLeave(employeeId, selectedDate);
+
+            // ❌ Block ONLY when:
+            // Leave exists
+            // AND no active attendance exists
+
+            if (onLeave && !existingAttendance) {
+
+                return res.status(400).json({
+                    status: 'error',
+                    message:
+                        'You are on approved leave for this date. Cannot mark check-out.'
+                });
+            }
         
         // Find attendance record
         const attendance = await Attendance.findOne({

@@ -7,6 +7,8 @@ let adminChart = null;
 let employees = [];
 let leaveRequests = [];
 let holidays = [];
+let todayPresentEmployees = [];
+let todayLeaveEmployees = [];
 
 // ============================================
 // GLOBAL showSection FUNCTION (Moved to global scope)
@@ -212,6 +214,48 @@ function setupEventListeners() {
             confirmBulkReverseBtn.addEventListener(
                 'click',
                 bulkReverseAttendanceHandler
+            );
+        }
+
+        // ============================================
+        // DASHBOARD CARD CLICK EVENTS
+        // ============================================
+
+        const presentTodayCard =
+            document.getElementById(
+                'presentTodayCard'
+            );
+
+        if (presentTodayCard) {
+
+            presentTodayCard.addEventListener(
+                'click',
+                () => {
+
+                    showEmployeeList(
+                        'Present Employees Today',
+                        todayPresentEmployees
+                    );
+                }
+            );
+        }
+
+        const leaveTodayCard =
+            document.getElementById(
+                'leaveTodayCard'
+            );
+
+        if (leaveTodayCard) {
+
+            leaveTodayCard.addEventListener(
+                'click',
+                () => {
+
+                    showEmployeeList(
+                        'Employees On Leave Today',
+                        todayLeaveEmployees
+                    );
+                }
             );
         }
 
@@ -528,122 +572,287 @@ function adminLogout() {
 // ============================================
 
 async function loadDashboardStats() {
+
     try {
-        const employeesData = await API.getAllEmployees();
-        const leavesData = await API.getAllLeaveRequests();
-        
-        const totalEmployees = employeesData.data?.filter(user => user.role === 'employee').length || 0;
-        const pendingLeaves = leavesData.data?.filter(l => l.status === 'PENDING').length || 0;
-        
-        // Get today's date
+
+        const employeesData =
+            await API.getAllEmployees();
+
+        const leavesData =
+            await API.getAllLeaveRequests();
+
+        const totalEmployees =
+            employeesData.data?.filter(
+                user => user.role === 'employee'
+            ).length || 0;
+
+        const pendingLeaves =
+            leavesData.data?.filter(
+                l => l.status === 'PENDING'
+            ).length || 0;
+
         const today = new Date();
-        const todayStr = today.toISOString().split('T')[0];
-        
-        // Get all employees
-        const allEmployees = employeesData.data?.filter(user => user.role === 'employee') || [];
-        
-        // Get today's attendance for all employees
+
+        const todayStr =
+            today.toISOString().split('T')[0];
+
+        const allEmployees =
+            employeesData.data?.filter(
+                user => user.role === 'employee'
+            ) || [];
+
         let presentToday = 0;
         let onLeaveToday = 0;
-        
+
+        // ============================================
+        // RESET ARRAYS
+        // ============================================
+
+        todayPresentEmployees = [];
+        todayLeaveEmployees = [];
+
         await Promise.all(
 
-        allEmployees.map(async (emp) => {
+            allEmployees.map(async (emp) => {
 
-            try {
+                try {
 
-                const attendanceData =
-                    await API.getEmployeeAttendance(
-                        emp._id,
-                        today.getMonth() + 1,
-                        today.getFullYear()
+                    const attendanceData =
+                        await API.getEmployeeAttendance(
+                            emp._id,
+                            today.getMonth() + 1,
+                            today.getFullYear()
+                        );
+
+                    const attendance =
+                        attendanceData?.data || [];
+
+                    const todayAttendance =
+                        attendance.find(record => {
+
+                            const recordDate =
+                                new Date(record.date)
+                                    .toISOString()
+                                    .split('T')[0];
+
+                            return recordDate === todayStr;
+                        });
+
+                    // ============================================
+                    // PRESENT
+                    // ============================================
+
+                    if (
+                        todayAttendance &&
+                        (
+                            todayAttendance.status === 'PRESENT' ||
+                            todayAttendance.status === 'LATE'
+                        )
+                    ) {
+
+                        presentToday++;
+
+                        todayPresentEmployees.push({
+                            employeeId: emp.employeeId,
+                            name:
+                                `${emp.firstName} ${emp.lastName}`,
+                            department: emp.department,
+                            status:
+                                todayAttendance.status
+                        });
+                    }
+
+                    // ============================================
+                    // LEAVE
+                    // ============================================
+
+                    const approvedLeaves =
+                        leavesData.data?.filter(l =>
+                            l.status === 'APPROVED' &&
+                            l.employee?._id === emp._id
+                        ) || [];
+
+                    const isOnLeave =
+                        approvedLeaves.some(leave => {
+
+                            const startDate =
+                                new Date(leave.startDate);
+
+                            const endDate =
+                                new Date(leave.endDate);
+
+                            return today >= startDate &&
+                                   today <= endDate;
+                        });
+
+                    if (isOnLeave) {
+
+                        onLeaveToday++;
+
+                        todayLeaveEmployees.push({
+                            employeeId: emp.employeeId,
+                            name:
+                                `${emp.firstName} ${emp.lastName}`,
+                            department: emp.department,
+                            status: 'ON LEAVE'
+                        });
+                    }
+
+                } catch (err) {
+
+                    console.error(
+                        `Attendance fetch failed for ${emp._id}`,
+                        err
                     );
-
-                const attendance = attendanceData?.data || [];
-
-                const todayAttendance = attendance.find(record => {
-
-                    const recordDate = new Date(record.date)
-                        .toISOString()
-                        .split('T')[0];
-
-                    return recordDate === todayStr;
-                });
-
-                if (
-                    todayAttendance &&
-                    (
-                        todayAttendance.status === 'PRESENT' ||
-                        todayAttendance.status === 'LATE'
-                    )
-                ) {
-                    presentToday++;
                 }
 
-                const approvedLeaves = leavesData.data?.filter(l =>
-                    l.status === 'APPROVED' &&
-                    l.employee?._id === emp._id
-                ) || [];
+            })
+        );
 
-                const isOnLeave = approvedLeaves.some(leave => {
+        // ============================================
+        // UPDATE UI
+        // ============================================
 
-                    const startDate = new Date(leave.startDate);
-                    const endDate = new Date(leave.endDate);
+        document.getElementById(
+            'totalEmployees'
+        ).textContent = totalEmployees;
 
-                    return today >= startDate &&
-                        today <= endDate;
-                });
+        document.getElementById(
+            'pendingLeaves'
+        ).textContent = pendingLeaves;
 
-                if (isOnLeave) {
-                    onLeaveToday++;
-                }
+        document.getElementById(
+            'presentToday'
+        ).textContent = presentToday;
 
-            } catch (err) {
+        document.getElementById(
+            'onLeaveToday'
+        ).textContent = onLeaveToday;
 
-                console.error(
-                    `Error fetching attendance for ${emp._id}:`,
-                    err
-                );
+        // ============================================
+        // CHART
+        // ============================================
+
+        const ctx =
+            document.getElementById('adminChart')
+                ?.getContext('2d');
+
+        if (ctx) {
+
+            if (adminChart) {
+                adminChart.destroy();
             }
 
-        })
-
-    );
-        
-        // Update DOM elements
-        const totalEl = document.getElementById('totalEmployees');
-        const pendingEl = document.getElementById('pendingLeaves');
-        const presentTodayEl = document.getElementById('presentToday');
-        const onLeaveTodayEl = document.getElementById('onLeaveToday');
-        
-        if (totalEl) totalEl.textContent = totalEmployees;
-        if (pendingEl) pendingEl.textContent = pendingLeaves;
-        if (presentTodayEl) presentTodayEl.textContent = presentToday;
-        if (onLeaveTodayEl) onLeaveTodayEl.textContent = onLeaveToday;
-        
-        // Update Chart
-        const ctx = document.getElementById('adminChart')?.getContext('2d');
-        if (ctx) {
-            if (adminChart) adminChart.destroy();
             adminChart = new Chart(ctx, {
+
                 type: 'bar',
+
                 data: {
-                    labels: ['Total Employees', 'Present Today', 'On Leave Today', 'Pending Leaves'],
+
+                    labels: [
+                        'Total Employees',
+                        'Present Today',
+                        'On Leave Today',
+                        'Pending Leaves'
+                    ],
+
                     datasets: [{
                         label: 'Count',
-                        data: [totalEmployees, presentToday, onLeaveToday, pendingLeaves],
-                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
+
+                        data: [
+                            totalEmployees,
+                            presentToday,
+                            onLeaveToday,
+                            pendingLeaves
+                        ],
+
+                        backgroundColor: [
+                            '#3b82f6',
+                            '#10b981',
+                            '#f59e0b',
+                            '#ef4444'
+                        ],
+
                         borderRadius: 10
                     }]
                 },
-                options: { responsive: true }
+
+                options: {
+                    responsive: true
+                }
             });
         }
-        
+
     } catch (error) {
-        console.error('Error loading dashboard:', error);
-        showToast('Failed to load dashboard stats', 'error');
+
+        console.error(error);
+
+        showToast(
+            'Failed to load dashboard stats',
+            'error'
+        );
     }
+}
+
+// ============================================
+// SHOW EMPLOYEE LIST MODAL
+// ============================================
+
+function showEmployeeList(title, employees) {
+
+    const titleEl =
+        document.getElementById('employeeListTitle');
+
+    const tbody =
+        document.getElementById(
+            'employeeListTableBody'
+        );
+
+    if (!titleEl || !tbody) return;
+
+    titleEl.textContent = title;
+
+    tbody.innerHTML = '';
+
+    if (!employees.length) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4"
+                    class="text-center">
+                    No employees found
+                </td>
+            </tr>
+        `;
+
+    } else {
+
+        employees.forEach(emp => {
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>${emp.employeeId}</td>
+                    <td>${emp.name}</td>
+                    <td>${emp.department}</td>
+                    <td>
+                        <span class="badge ${
+                            emp.status === 'ON LEAVE'
+                                ? 'bg-warning'
+                                : 'bg-success'
+                        }">
+                            ${emp.status}
+                        </span>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    new bootstrap.Modal(
+        document.getElementById(
+            'employeeListModal'
+        )
+    ).show();
 }
 
 // ============================================
@@ -1184,12 +1393,31 @@ checkOut = formatTime12Hour(record.checkOut);
     hoursDisplay = hours > 0 ? `${hours.toFixed(2)} hrs` : '-';
 } 
     else {
-        // ✅ Only past dates = ABSENT
-        if (currentDate < today) {
-            status = 'ABSENT';
-        }
-        // ✅ Today + Future = remain "-"
+
+    const selectedEmployee =
+        employees.find(
+            emp => emp._id === employeeId
+        );
+
+    const joiningDate =
+        new Date(selectedEmployee.joiningDate);
+
+    joiningDate.setHours(0, 0, 0, 0);
+
+    // ✅ Only after joining date = ABSENT
+    if (
+        currentDate < today &&
+        currentDate >= joiningDate
+    ) {
+
+        status = 'ABSENT';
     }
+
+    // ✅ Before joining date
+    else {
+        status = '-';
+    }
+}
     const row = tbody.insertRow();
 
     row.innerHTML = `
