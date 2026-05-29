@@ -1487,7 +1487,7 @@ async function saveAttendance() {
     const checkOutRaw = document.getElementById('markCheckOut').value;
 
     // Fix date to avoid timezone issues
-    const date = new Date(rawDate + 'T00:00:00');
+    const date = rawDate;
 
     let checkIn = null;
     let checkOut = null;
