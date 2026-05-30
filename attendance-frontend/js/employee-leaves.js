@@ -257,6 +257,15 @@ function formatDateToString(date) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function formatAttendancePopupDate(dateValue) {
+
+    const d = new Date(dateValue);
+
+    return `${d.getDate()} ${d.toLocaleString('en-IN', {
+        month: 'short'
+    })}`;
+}
+
 async function checkAttendanceOnDates(startDate, endDate) {
     try {
         const start = new Date(startDate);
@@ -289,8 +298,11 @@ async function checkLeaveOverlap(startDate, endDate, excludeLeaveId = null) {
             leave.status === 'APPROVED' && leave._id !== excludeLeaveId
         );
         
-        const start = new Date(startDate);
-        const end = new Date(endDate);
+        const [sy, sm, sd] = startDate.split('-').map(Number);
+        const [ey, em, ed] = endDate.split('-').map(Number);
+
+        const start = new Date(sy, sm - 1, sd);
+        const end = new Date(ey, em - 1, ed);
         
         const overlappingLeaves = approvedLeaves.filter(leave => {
             const leaveStart = new Date(leave.startDate);
@@ -368,10 +380,9 @@ function setupLeaveForm() {
         const existingAttendance = await checkAttendanceOnDates(startDate, endDate);
         
         if (existingAttendance.length > 0) {
-            const dateList = existingAttendance.map(a => {
-                const date = new Date(a.date);
-                return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-            }).join(', ');
+            const dateList = existingAttendance
+            .map(a => formatAttendancePopupDate(a.date))
+            .join(', ');
             
             const confirmMessage = `You have attendance marked on: ${dateList}\n\nOnce approved, these will be marked as leave.\n\nDo you want to continue?`;
             

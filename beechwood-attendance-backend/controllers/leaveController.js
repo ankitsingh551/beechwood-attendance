@@ -5,6 +5,27 @@ const User = require('../models/User');
 const Attendance = require('../models/Attendance'); 
 const Settings = require('../models/Settings');
 
+const parseLocalDate = (dateStr) => {
+
+    if (
+        typeof dateStr === 'string' &&
+        /^\d{4}-\d{2}-\d{2}$/.test(dateStr)
+    ) {
+
+        const [year, month, day] =
+            dateStr.split('-').map(Number);
+
+        return new Date(
+            year,
+            month - 1,
+            day,
+            0, 0, 0, 0
+        );
+    }
+
+    return new Date(dateStr);
+};
+
 // ============================================
 // 📝 REQUEST LEAVE (Employee)
 // ============================================
@@ -21,10 +42,8 @@ const requestLeave = async (req, res) => {
             });
         }
 
-        // Convert to Date objects
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        
+      const start = parseLocalDate(startDate);
+      const end = parseLocalDate(endDate);
         // Check if start date is before end date
         if (start > end) {
             return res.status(400).json({
@@ -77,8 +96,8 @@ const requestLeave = async (req, res) => {
         const leave = await Leave.create({
             employee: employeeId,
             leaveType,
-            startDate,
-            endDate,
+            startDate: start,
+            endDate: end,
             daysCount,
             reason,
             status: 'PENDING',

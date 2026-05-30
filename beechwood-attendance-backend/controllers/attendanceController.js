@@ -502,11 +502,17 @@ const getMyAttendance = async (req, res, next) => {
         };
         
         if (fromDate && toDate) {
-            query.date = {
-                $gte: getStartOfDay(new Date(fromDate)),
-                $lte: getEndOfDay(new Date(toDate))
-            };
-        } else if (month && year) {
+
+    query.date = {
+        $gte: getStartOfDay(
+            normalizeLocalDate(fromDate)
+        ),
+
+        $lte: getEndOfDay(
+            normalizeLocalDate(toDate)
+        )
+    };
+    } else if (month && year) {
             const startDate = new Date(year, month - 1, 1);
             const endDate = new Date(year, month, 0);
             query.date = {
