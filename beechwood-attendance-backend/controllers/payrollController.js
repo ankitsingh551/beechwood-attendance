@@ -20,13 +20,40 @@ exports.generateMonthlyPayroll = async (req, res) => {
 
         for (const employee of employees) {
 
+            const monthStr = String(month).padStart(2, '0');
+
+            const startKey = `${year}-${monthStr}-01`;
+
+            const endKey = `${year}-${monthStr}-${String(
+                new Date(year, month, 0).getDate()
+            ).padStart(2, '0')}`;
+
+            const startDate = new Date(year, month - 1, 1);
+
+            const endDate = new Date(year, month, 1);
+
             const attendance = await Attendance.find({
                 employee: employee._id,
                 isReversed: { $ne: true },
-                attendanceDate: {
-                    $gte: `${year}-${String(month).padStart(2, '0')}-01`,
-                    $lte: `${year}-${String(month).padStart(2, '0')}-${String(new Date(year, month, 0).getDate()).padStart(2, '0')}`
-                }
+                $or: [
+                    {
+                        attendanceDate: {
+                            $gte: startKey,
+                            $lte: endKey
+                        }
+                    },
+                    {
+                        $or: [
+                            { attendanceDate: { $exists: false } },
+                            { attendanceDate: null },
+                            { attendanceDate: '' }
+                        ],
+                        date: {
+                            $gte: startDate,
+                            $lt: endDate
+                        }
+                    }
+                ]
             });
 
             // =============================

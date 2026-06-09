@@ -1388,37 +1388,51 @@ async function loadEmployeeAttendance() {
     return `${hours}:${minutes} ${ampm}`;
 }
 
-checkIn = formatTime12Hour(record.checkIn);
-checkOut = formatTime12Hour(record.checkOut);
-    const hours = record.workingHours || 0;
-    hoursDisplay = hours > 0 ? `${hours.toFixed(2)} hrs` : '-';
-} 
-    else {
+        checkIn = formatTime12Hour(record.checkIn);
+        checkOut = formatTime12Hour(record.checkOut);
+            const hours = record.workingHours || 0;
+            hoursDisplay = hours > 0 ? `${hours.toFixed(2)} hrs` : '-';
+        } 
+            else {
 
-    const selectedEmployee =
-        employees.find(
-            emp => emp._id === employeeId
-        );
+            const selectedEmployee =
+                employees.find(
+                    emp => emp._id === employeeId
+                );
 
-    const joiningDate =
-        new Date(selectedEmployee.joiningDate);
+            const joiningDate =
+                new Date(selectedEmployee.joiningDate);
 
-    joiningDate.setHours(0, 0, 0, 0);
+            joiningDate.setHours(0, 0, 0, 0);
 
-    // ✅ Only after joining date = ABSENT
-    if (
-        currentDate < today &&
-        currentDate >= joiningDate
-    ) {
+            const currentMonth =
+                today.getMonth() + 1;
 
-        status = 'ABSENT';
-    }
+            const currentYear =
+                today.getFullYear();
 
-    // ✅ Before joining date
-    else {
-        status = '-';
-    }
-}
+            const isPastMonth =
+                year < currentYear ||
+                (
+                    year === currentYear &&
+                    month < currentMonth
+                );
+
+            // Previous month(s)
+            if (
+                isPastMonth &&
+                currentDate >= joiningDate
+            ) {
+
+                status = 'ABSENT';
+            }
+
+            // Current month & future month
+            else {
+
+                status = '-';
+            }
+        }
     const row = tbody.insertRow();
 
     row.innerHTML = `
