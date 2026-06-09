@@ -4,6 +4,7 @@ const Leave = require('../models/Leave');
 const User = require('../models/User');
 const Attendance = require('../models/Attendance'); 
 const Settings = require('../models/Settings');
+const { toDateKey } = require('../utils/dateKey');
 
 const parseLocalDate = (dateStr) => {
 
@@ -204,28 +205,10 @@ const approveLeave = async (req, res) => {
                     d.getMonth(),
                     d.getDate()
                 );
-
-                const startOfDay = new Date(
-                    currentDate.getFullYear(),
-                    currentDate.getMonth(),
-                    currentDate.getDate(),
-                    0, 0, 0, 0
-                );
-
-                const endOfDay = new Date(
-                    currentDate.getFullYear(),
-                    currentDate.getMonth(),
-                    currentDate.getDate(),
-                    23, 59, 59, 999
-                );
-
+                const attendanceDate = toDateKey(currentDate);
                 const attendance = await Attendance.findOne({
-
                     employee: leave.employee,
-                    date: {
-                        $gte: startOfDay,
-                        $lte: endOfDay
-                    }
+                    attendanceDate
                 });
 
             // ============================================
@@ -287,21 +270,16 @@ const approveLeave = async (req, res) => {
     else {
 
         await Attendance.create({
-
             employee: leave.employee,
-
             date: currentDate,
-
+            attendanceDate,
             status: 'LEAVE',
-
             checkIn: null,
-
             checkOut: null,
-
             workingHours: 0,
-
-            remarks:
-                `Leave approved: ${leave.leaveType}`
+            remarks: `Leave approved: ${leave.leaveType}`,
+            markedBy: req.user._id,
+            isManual: true
         });
     }
 }

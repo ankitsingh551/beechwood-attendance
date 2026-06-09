@@ -12,6 +12,11 @@ const attendanceSchema = new mongoose.Schema({
         type: Date,
         required: true
     },
+
+    attendanceDate: {
+    type: String,
+    required: true
+},
     checkIn: {
         type: String,
         default: null
@@ -66,8 +71,10 @@ const attendanceSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// ✅ Unique constraint: one attendance per employee per day
-attendanceSchema.index({ employee: 1, date: 1 }, { unique: true });
+attendanceSchema.index(
+    { employee: 1, attendanceDate: 1 },
+    { unique: true }
+);
 
 
 // ✅ Helper to convert time string to minutes
@@ -115,5 +122,13 @@ attendanceSchema.pre('save', function () {
     }
 });
 
+attendanceSchema.pre('validate', function () {
+    if (!this.attendanceDate && this.date) {
+        const year = this.date.getFullYear();
+        const month = String(this.date.getMonth() + 1).padStart(2, '0');
+        const day = String(this.date.getDate()).padStart(2, '0');
 
+        this.attendanceDate = `${year}-${month}-${day}`;
+    }
+});
 module.exports = mongoose.model('Attendance', attendanceSchema);

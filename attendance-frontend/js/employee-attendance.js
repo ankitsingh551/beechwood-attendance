@@ -176,26 +176,37 @@ function generateMonthlyCalendar(year, month) {
         // ✅ PRIORITY 5: Past unmarked = Absent
         else {
 
-            const joiningDate =
-                new Date(currentUser.joiningDate);
+        const joiningDate =
+            new Date(currentUser.joiningDate);
 
-            joiningDate.setHours(0, 0, 0, 0);
+        joiningDate.setHours(0, 0, 0, 0);
 
-            // Only AFTER joining date
-            if (
-                currentDate < today &&
-                currentDate >= joiningDate
-            ) {
+        const currentMonth =
+            today.getMonth();
 
-                record.status = 'Absent';
-            }
+        const currentYear =
+            today.getFullYear();
 
-            // Before joining date
-            else {
+        const selectedMonth =
+            currentDate.getMonth();
 
-                record.status = '';
-            }
+        const selectedYear =
+            currentDate.getFullYear();
+
+        const isPastMonth =
+            selectedYear < currentYear ||
+            (
+                selectedYear === currentYear &&
+                selectedMonth < currentMonth
+            );
+
+        if (
+            isPastMonth &&
+            currentDate >= joiningDate
+        ) {
+            record.status = 'Absent';
         }
+    }
         
         allRecords.push(record);
     }

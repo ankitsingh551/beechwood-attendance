@@ -631,9 +631,10 @@ async function loadDashboardStats() {
                         attendance.find(record => {
 
                             const recordDate =
-                                new Date(record.date)
-                                    .toISOString()
-                                    .split('T')[0];
+                            record.attendanceDate ||
+                            new Date(record.date)
+                                .toISOString()
+                                .split('T')[0];
 
                             return recordDate === todayStr;
                         });

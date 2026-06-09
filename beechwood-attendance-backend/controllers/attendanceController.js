@@ -5,6 +5,7 @@ const Attendance = require('../models/Attendance');
 const User = require('../models/User');
 const Leave = require('../models/Leave');
 const Holiday = require('../models/Holiday');
+const { toDateKey } = require('../utils/dateKey');
 
 // ============================================
 // HELPER: Check if employee is on approved leave
@@ -120,6 +121,7 @@ const markCheckIn = async (req, res, next) => {
         const userRole = req.user.role;
 
         const selectedDate = normalizeLocalDate(date);
+        const attendanceDate = toDateKey(date);
 
 
         // ============================================
@@ -153,15 +155,9 @@ const markCheckIn = async (req, res, next) => {
             // ============================================
 
             const existingAttendance = await Attendance.findOne({
-
                 employee: employeeId,
-
-                isReversed: { $ne: true },
-
-                date: {
-                    $gte: getStartOfDay(selectedDate),
-                    $lte: getEndOfDay(selectedDate)
-                }
+                attendanceDate,
+                isReversed: { $ne: true }
             });
 
             const onLeave =
@@ -200,10 +196,7 @@ const markCheckIn = async (req, res, next) => {
 
         let attendance = await Attendance.findOne({
             employee: employeeId,
-            date: {
-                $gte: getStartOfDay(selectedDate),
-                $lte: getEndOfDay(selectedDate)
-            }
+            attendanceDate
         });
 
         const checkInTime = checkIn || new Date().toLocaleTimeString();
@@ -221,6 +214,8 @@ if (attendance && attendance.isReversed) {
     attendance.reversedAt = null;
 
     attendance.reversedBy = null;
+
+    attendance.attendanceDate = attendanceDate;
 
     attendance.checkIn = checkInTime;
 
@@ -253,7 +248,7 @@ else if (!attendance) {
         employee: employeeId,
 
         date: selectedDate,
-
+        attendanceDate,
         checkIn: checkInTime,
 
         location: location || {},
@@ -333,6 +328,7 @@ const markCheckOut = async (req, res, next) => {
         const employeeId = req.user._id;
         
         const selectedDate = normalizeLocalDate(date);
+        const attendanceDate = toDateKey(date);
 
 
     // ============================================
@@ -366,15 +362,9 @@ const markCheckOut = async (req, res, next) => {
             // ============================================
 
             const existingAttendance = await Attendance.findOne({
-
                 employee: employeeId,
-
-                isReversed: { $ne: true },
-
-                date: {
-                    $gte: getStartOfDay(selectedDate),
-                    $lte: getEndOfDay(selectedDate)
-                }
+                attendanceDate,
+                isReversed: { $ne: true }
             });
 
             const onLeave =
@@ -395,15 +385,9 @@ const markCheckOut = async (req, res, next) => {
         
         // Find attendance record
         const attendance = await Attendance.findOne({
-
             employee: employeeId,
-
-            isReversed: { $ne: true },
-
-            date: {
-                $gte: getStartOfDay(selectedDate),
-                $lte: getEndOfDay(selectedDate)
-            }
+            attendanceDate,
+            isReversed: { $ne: true }
         });
         
         if (!attendance) {
@@ -552,6 +536,7 @@ const adminMarkAttendance = async (req, res, next) => {
         const { employeeId, date, checkIn, checkOut, status, remarks } = req.body;
         
         const selectedDate = normalizeLocalDate(date);
+        const attendanceDate = toDateKey(date);
         
         // Check if employee exists
         const employee = await User.findById(employeeId);
@@ -584,13 +569,10 @@ const adminMarkAttendance = async (req, res, next) => {
         }
 
         // Check if attendance already exists
-        let attendance = await Attendance.findOne({
-            employee: employeeId,
-            date: {
-                $gte: getStartOfDay(selectedDate),
-                $lte: getEndOfDay(selectedDate)
-            }
-        });
+            let attendance = await Attendance.findOne({
+                employee: employeeId,
+                attendanceDate
+            });
 
        const allowedStatus = ['PRESENT','ABSENT','LATE','HALF_DAY','LEAVE'];
 
@@ -602,11 +584,22 @@ const adminMarkAttendance = async (req, res, next) => {
         }
 
         if (!status) {
-    return res.status(400).json({
-        status: 'error',
-        message: 'Status is required'
-    });
-}
+        return res.status(400).json({
+            status: 'error',
+            message: 'Status is required'
+            });
+        }
+
+        if (
+            ['PRESENT', 'LATE', 'HALF_DAY'].includes(status) &&
+            (!checkIn || !checkOut)
+        ) {
+            return res.status(400).json({
+                status: 'error',
+                message:
+                'Check-In and Check-Out are required for working attendance'
+            });
+        }
             
         // ============================================
         // CASE 1:
@@ -639,11 +632,11 @@ if (attendance && attendance.isReversed) {
             ? 0
             : attendance.workingHours;
 
-    attendance.remarks =
-        remarks || 'Attendance restored';
+     attendance.remarks =
+        remarks ||
+        `Marked manually by admin on ${new Date().toLocaleString()}`;
 
     attendance.markedBy = req.user._id;
-
     attendance.isManual = true;
 }
 
@@ -700,11 +693,12 @@ if (attendance && attendance.isReversed) {
             attendance.markedBy = req.user._id;
 
             attendance.isManual = true;
-        }else {
+         }else {
             // Create new
             attendance = new Attendance({
                 employee: employeeId,
                 date: selectedDate,
+                attendanceDate,
                 checkIn: ['ABSENT','LEAVE'].includes(status) ? null : (checkIn || null),
                 checkOut: ['ABSENT','LEAVE'].includes(status) ? null : (checkOut || null),
                 workingHours: ['ABSENT','LEAVE'].includes(status) ? 0 : undefined,
@@ -847,16 +841,31 @@ const getMonthlySummary = async (req, res, next) => {
                     leave: 0
                 };
             }
-            if (record.status === 'PRESENT' || record.status === 'LATE') {
+            if (record.status === 'PRESENT') {
+
+            summary.departmentWise[dept].present++;
+
+            }
+            else if (record.status === 'LATE') {
+
                 summary.departmentWise[dept].present++;
-            } else if (record.status === 'ABSENT') {
-                summary.departmentWise[dept].absent++;
-            } else if (record.status === 'LATE') {
                 summary.departmentWise[dept].late++;
-            } else if (record.status === 'HALF_DAY') {
+
+            }
+            else if (record.status === 'ABSENT') {
+
+                summary.departmentWise[dept].absent++;
+
+            }
+            else if (record.status === 'HALF_DAY') {
+
                 summary.departmentWise[dept].halfDay++;
-            } else if (record.status === 'LEAVE') {
+
+            }
+            else if (record.status === 'LEAVE') {
+
                 summary.departmentWise[dept].leave++;
+
             }
         });
         
@@ -951,13 +960,21 @@ const getMyMonthlySummary = async (req, res, next) => {
             const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
             
             // Skip future dates
+           // Skip future dates
             if (currentDate > today) continue;
-            
+
+            // Skip Saturday and Sunday
+            const isWeekend =
+                currentDate.getDay() === 0 ||
+                currentDate.getDay() === 6;
+
+            if (isWeekend) continue;
+
             // Check if holiday
             if (holidayDates.includes(dateStr)) {
                 continue;
             }
-            
+                        
             // Check if leave day
             if (leaveDates.includes(dateStr)) {
                 leave++;
@@ -966,12 +983,12 @@ const getMyMonthlySummary = async (req, res, next) => {
             
             // Check attendance
             if (attendanceDates.includes(dateStr)) {
-    const record = attendance.find(a => {
-        const d = new Date(a.date);
-        const recDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        return recDateStr === dateStr;
-    });
-    
+            const record = attendance.find(a => {
+            const d = new Date(a.date);
+            const recDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            return recDateStr === dateStr;
+        });
+        
     if (record) {
         // ✅ FIXED LOGIC
         if (record.status === 'PRESENT') {
@@ -992,10 +1009,17 @@ const getMyMonthlySummary = async (req, res, next) => {
         totalHours += record.workingHours || 0;
     }
 } else {
-                // No attendance, no leave, not holiday = ABSENT
-                absent++;
-            }
-        }
+    const isCurrentMonth =
+        Number(currentMonth) === new Date().getMonth() + 1 &&
+        Number(currentYear) === new Date().getFullYear();
+
+    // Current month missing attendance should remain blank
+    // Previous month missing working days become absent
+    if (!isCurrentMonth) {
+        absent++;
+    }
+    }
+  }
         
         res.status(200).json({
             status: 'success',
@@ -1027,18 +1051,12 @@ const unmarkAttendance = async (req, res, next) => {
         const { date } = req.body;
         const employeeId = req.user._id;
 
-        const selectedDate = normalizeLocalDate(date);
+        const attendanceDate = toDateKey(date);
 
         const result = await Attendance.findOneAndDelete({
-
             employee: employeeId,
-
-            isReversed: { $ne: true },
-
-            date: {
-                $gte: getStartOfDay(selectedDate),
-                $lte: getEndOfDay(selectedDate)
-            }
+            attendanceDate,
+            isReversed: { $ne: true }
         });
 
         if (!result) {
@@ -1082,11 +1100,11 @@ const bulkReverseAttendance = async (req, res, next) => {
             });
         }
 
-        const startDate = new Date(fromDate);
-        startDate.setHours(0, 0, 0, 0);
+        const startDate = normalizeLocalDate(fromDate);
+        startDate.setHours(0,0,0,0);
 
-        const endDate = new Date(toDate);
-        endDate.setHours(23, 59, 59, 999);
+        const endDate = normalizeLocalDate(toDate);
+        endDate.setHours(23,59,59,999);
 
         // ============================================
         // FIND ATTENDANCE

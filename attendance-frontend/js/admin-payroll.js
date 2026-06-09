@@ -2,10 +2,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadPayroll();
 
-    document.getElementById('generatePayrollBtn')
-        .addEventListener('click', generatePayroll);
+    const generatePayrollBtn =
+    document.getElementById('generatePayrollBtn');
 
-});
+    if (generatePayrollBtn) {
+        generatePayrollBtn.addEventListener(
+            'click',
+            generatePayroll
+        );
+    }
+
+    });
 
 // ============================================
 // GENERATE PAYROLL
@@ -484,11 +491,15 @@ async function loadPayroll() {
 // EXPORT EXCEL
 // ============================================
 
-document.getElementById('exportExcelBtn')
-    .addEventListener(
+const exportExcelBtn =
+    document.getElementById('exportExcelBtn');
+
+if (exportExcelBtn) {
+    exportExcelBtn.addEventListener(
         'click',
         exportPayrollExcel
     );
+}
 
 function exportPayrollExcel() {
 
@@ -618,12 +629,17 @@ async function editPayroll(payrollId, event) {
 // SAVE PAYROLL CHANGES
 // ============================================
 
-document.getElementById(
-    'savePayrollChangesBtn'
-).addEventListener(
-    'click',
-    savePayrollChanges
-);
+const savePayrollBtn =
+    document.getElementById(
+        'savePayrollChangesBtn'
+    );
+
+if (savePayrollBtn) {
+    savePayrollBtn.addEventListener(
+        'click',
+        savePayrollChanges
+    );
+}
 
 async function savePayrollChanges() {
 

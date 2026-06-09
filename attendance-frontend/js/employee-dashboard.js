@@ -163,10 +163,9 @@ async function loadAttendanceData() {
         
         // Normalize dates to avoid timezone issues
         attendance.forEach(record => {
-            const recordDate = new Date(record.date);
-            recordDate.setHours(0, 0, 0, 0);
-
-            const dateStr = formatDateToString(recordDate);
+            const dateStr =
+            record.attendanceDate ||
+            formatDateToString(new Date(record.date));
 
             attendanceDetails[dateStr] = {
                 status: (record.status || '').toUpperCase(),
@@ -218,29 +217,7 @@ records.forEach(record => {
 
 const data = { present, late, halfDay, absent, leave };
         
-        // Calculate absents correctly - only count past unmarked dates
-        const joiningDate = new Date(currentUser.joiningDate);
-        joiningDate.setHours(0, 0, 0, 0);
-        
-        const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
-        let missedPastDates = 0;
-        
-        for (let day = 1; day <= daysInMonth; day++) {
-            const currentDate = new Date(currentYear, currentMonth - 1, day);
-            currentDate.setHours(0, 0, 0, 0);
-            const dateStr = formatDateToString(currentDate);
-            
-            const isPast = currentDate < today;
-            const isAfterJoining = currentDate >= joiningDate;
-            const hasAttendance = attendanceDetails[dateStr] !== undefined;
-            
-            if (isPast && isAfterJoining && !hasAttendance) {
-                const isHoliday = holidayDates.includes(dateStr);
-                if (!isHoliday) missedPastDates++;
-            }
-        }
-        
-        const totalAbsent = (data.absent || 0) + missedPastDates;
+        const totalAbsent = data.absent || 0;
        
         // LEAVE BALANCE (YEARLY)
         // ============================================
@@ -693,11 +670,11 @@ function updateCalendarColors() {
                 day.classList.remove('attendance-absent');
             }
             else if (isPast) {
-                // 🔥 Past unmarked = show ABSENT but still selectable
-                day.classList.add('attendance-absent');   // show red color
+                // Past unmarked current-month dates should stay selectable but not red
+                day.classList.remove('attendance-absent');
                 day.classList.remove('flatpickr-disabled');
 
-                day.style.pointerEvents = 'auto';         // keep clickable
+                day.style.pointerEvents = 'auto';
                 day.style.cursor = 'pointer';
             }
         });
@@ -1027,9 +1004,12 @@ async function downloadEmployeeReport() {
         }
         
         let csv = 'Date,Check In,Check Out,Status,Hours\n';
+
         attendance.forEach(record => {
-            const date = new Date(record.date);
-            const formattedDate = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
+            const formattedDate =
+            record.attendanceDate ||
+            formatDateToString(new Date(record.date));
+
             csv += `"${formattedDate}","${record.checkIn || '-'}","${record.checkOut || '-'}","${record.status}","${record.workingHours || 0}"\n`;
         });
         

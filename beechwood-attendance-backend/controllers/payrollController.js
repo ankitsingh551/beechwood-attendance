@@ -23,9 +23,9 @@ exports.generateMonthlyPayroll = async (req, res) => {
             const attendance = await Attendance.find({
                 employee: employee._id,
                 isReversed: { $ne: true },
-                date: {
-                    $gte: new Date(year, month - 1, 1),
-                    $lt: new Date(year, month, 1)
+                attendanceDate: {
+                    $gte: `${year}-${String(month).padStart(2, '0')}-01`,
+                    $lte: `${year}-${String(month).padStart(2, '0')}-${String(new Date(year, month, 0).getDate()).padStart(2, '0')}`
                 }
             });
 
@@ -79,6 +79,10 @@ exports.generateMonthlyPayroll = async (req, res) => {
             // =============================
             // PAYROLL CALCULATION
             // =============================
+
+            if (expectedHours <= 0) {
+                continue;
+            }
 
             const hourlyRate = Number(
                 (currentSalary / expectedHours).toFixed(2)
